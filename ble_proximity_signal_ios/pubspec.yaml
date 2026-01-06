@@ -1,0 +1,27 @@
+name: ble_proximity_signal_ios
+description: iOS implementation of the ble_proximity_signal plugin
+version: 0.1.0+1
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+flutter:
+  plugin:
+    implements: ble_proximity_signal
+    platforms:
+      ios:
+        pluginClass: BleProximitySignalPlugin
+        dartPluginClass: BleProximitySignalIOS
+
+dependencies:
+  ble_proximity_signal_platform_interface:
+    path: ../ble_proximity_signal_platform_interface
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.8
+  very_good_analysis: ^10.0.0
