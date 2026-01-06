@@ -13,7 +13,7 @@ flutter:
     implements: ble_proximity_signal
     platforms:
       android:
-        package: com.example.verygoodcore
+        package: com.andrew.proximity_signal
         pluginClass: BleProximitySignalPlugin
         dartPluginClass: BleProximitySignalAndroid
 

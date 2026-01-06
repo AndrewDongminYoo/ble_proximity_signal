@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.verygoodcore.example"
+    namespace = "com.andrew.proximity_signal.example"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -23,7 +23,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.verygoodcore.example"
+        applicationId = "com.andrew.proximity_signal.example"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

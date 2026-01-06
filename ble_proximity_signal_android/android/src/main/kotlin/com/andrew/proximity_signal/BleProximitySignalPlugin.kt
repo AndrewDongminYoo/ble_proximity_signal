@@ -1,4 +1,4 @@
-package com.example.verygoodcore
+package com.andrew.proximity_signal
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager

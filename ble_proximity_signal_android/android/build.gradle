@@ -3,7 +3,7 @@ plugins {
     id "kotlin-android"
 }
 
-group 'com.example.verygoodcore'
+group 'com.andrew.proximity_signal'
 version '1.0-SNAPSHOT'
 
 allprojects {
@@ -15,7 +15,7 @@ allprojects {
 
 android {
     if (project.android.hasProperty("namespace")) {
-        namespace 'com.example.verygoodcore'
+        namespace 'com.andrew.proximity_signal'
     }
 
     compileSdk 34

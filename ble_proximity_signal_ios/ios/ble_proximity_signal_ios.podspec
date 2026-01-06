@@ -8,9 +8,9 @@ Pod::Spec.new do |s|
   s.description      = <<-DESC
   An iOS implementation of the ble_proximity_signal plugin.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://andrewdongminyoo.vercel.app'
   s.license          = { :type => 'BSD', :file => '../LICENSE' }
-  s.author           = { 'Com Example Verygoodcore' => 'email@example.com' }
+  s.author           = { 'Dongmin, Yu' => 'ydm2790@gmail.com' }
   s.source           = { :path => '.' }  
   s.source_files = 'ble_proximity_signal_ios/Sources/**/*.swift'
   s.dependency 'Flutter'
