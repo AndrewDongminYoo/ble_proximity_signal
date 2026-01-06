@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 class BleProximitySignalIOS extends BleProximitySignalPlatform {
   /// The method channel used to interact with the native platform.
   @visibleForTesting
-  final methodChannel = const MethodChannel('ble_proximity_signal_ios');
+  final methodChannel = const MethodChannel('ble_proximity_signal');
 
   /// Registers this class as the default instance of [BleProximitySignalPlatform]
   static void registerWith() {
