@@ -1,8 +1,16 @@
 /// Proximity buckets derived from RSSI.
-enum ProximityLevel { far, near, veryNear }
+enum ProximityLevel {
+  /// Far (No signal)
+  far,
+  /// Close (Signal detected)
+  near,
+  /// Very close (Signal increasing)
+  veryNear,
+}
 
 /// Smoothed proximity signal for a single target token.
 class ProximityEvent {
+  /// Smoothed proximity signal for a single target token.
   const ProximityEvent({
     required this.targetToken,
     required this.rssi,

@@ -52,6 +52,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    unawaited(_ble.dispose());
     unawaited(_subscription?.cancel());
     _beepTimer?.cancel();
     _beepFlashTimer?.cancel();

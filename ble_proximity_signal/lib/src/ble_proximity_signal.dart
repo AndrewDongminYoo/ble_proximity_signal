@@ -76,6 +76,13 @@ class BleProximitySignal {
       _processor = null;
     }
   }
+
+  /// Clean Up Internal Resources
+  Future<void> dispose() async {
+    await stopScan();
+    await stopBroadcast();
+    await _eventsController.close();
+  }
 }
 
 String _normalizeToken(String token) {
