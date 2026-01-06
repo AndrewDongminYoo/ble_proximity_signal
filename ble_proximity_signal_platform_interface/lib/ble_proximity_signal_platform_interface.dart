@@ -119,6 +119,7 @@ class RawScanResult {
   final int rssi;
 
   /// Epoch milliseconds from native when the scan callback was received.
+  /// Uses wall-clock time (Unix epoch) for cross-platform consistency.
   final int timestampMs;
 
   @override

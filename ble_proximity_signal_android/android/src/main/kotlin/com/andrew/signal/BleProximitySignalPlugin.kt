@@ -4,7 +4,6 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.*
 import android.content.Context
-import android.os.SystemClock
 import androidx.annotation.NonNull
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
@@ -253,9 +252,8 @@ class BleProximitySignalPlugin :
                         hashMapOf<String, Any>(
                             "targetToken" to tokenHex,
                             "rssi" to result.rssi,
-                            // Use elapsedRealtime to avoid wall-clock jumps; convert to "epoch-ish" ms not required.
-                            // Dart side treats it as timestamp; consistency matters more than absolute time.
-                            "timestampMs" to SystemClock.elapsedRealtime().toInt(),
+                            // Use epoch ms to match iOS and public contract.
+                            "timestampMs" to System.currentTimeMillis().toInt(),
                         )
                     eventSink?.success(payload)
                 }
