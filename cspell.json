@@ -20,5 +20,6 @@
     }
   ],
   "useGitignore": true,
+  "ignoreWords": ["meta-data"],
   "words": ["fluttium"]
 }
