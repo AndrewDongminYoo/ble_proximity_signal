@@ -20,65 +20,24 @@ class BroadcastConfig {
   /// Optional tx power hint. Platform may ignore.
   final int? txPower;
 
+  /// Creates a map with keys 'serviceUuid' and 'txPower' mapped to their respective values.
   Map<String, Object?> toMap() => <String, Object?>{
     'serviceUuid': serviceUuid,
     'txPower': txPower,
   };
 }
 
-/// Thresholds for proximity hysteresis and intensity mapping.
-class Thresholds {
-  /// Thresholds for proximity hysteresis and intensity mapping.
-  const Thresholds({
-    this.enterNearDbm = -60,
-    this.exitNearDbm = -65,
-    this.enterVeryNearDbm = -52,
-    this.exitVeryNearDbm = -56,
-    this.minDbm = -80,
-    this.maxDbm = -45,
-  });
-
-  /// dBm threshold to enter near.
-  final int enterNearDbm;
-
-  /// dBm threshold to exit near.
-  final int exitNearDbm;
-
-  /// dBm threshold to enter very near.
-  final int enterVeryNearDbm;
-
-  /// dBm threshold to exit very near.
-  final int exitVeryNearDbm;
-
-  /// Minimum dBm used to map intensity to 0.
-  final int minDbm;
-
-  /// Maximum dBm used to map intensity to 1.
-  final int maxDbm;
-}
-
-/// Scan configuration used by the Dart-side signal processor.
+/// Scan configuration for native filtering.
 class ScanConfig {
-  /// Scan configuration used by the Dart-side signal processor.
+  /// Scan configuration for native filtering.
   const ScanConfig({
     this.serviceUuid = BroadcastConfig.defaultServiceUuid,
-    this.emaAlpha = 0.2,
-    this.thresholds = const Thresholds(),
-    this.staleMs = 1500,
   });
 
   /// BLE service UUID used to filter scan results.
   final String serviceUuid;
 
-  /// Exponential moving average alpha (0..1).
-  final double emaAlpha;
-
-  /// Hysteresis thresholds + intensity mapping bounds.
-  final Thresholds thresholds;
-
-  /// Stale timeout in milliseconds.
-  final int staleMs;
-
+  /// The function `toMap()` returns a map with a key 'serviceUuid' and its corresponding value.
   Map<String, Object?> toMap() => <String, Object?>{
     'serviceUuid': serviceUuid,
   };
@@ -94,6 +53,7 @@ class RawScanResult {
     required this.timestampMs,
   });
 
+  /// Converts a map to a `RawScanResult` object by validating and extracting specific fields.
   factory RawScanResult.fromMap(Map<Object?, Object?> map) {
     final token = map['targetToken'];
     final rssi = map['rssi'];

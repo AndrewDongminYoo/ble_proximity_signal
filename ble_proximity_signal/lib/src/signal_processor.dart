@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:ble_proximity_signal/src/proximity_event.dart';
-import 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_platform_interface.dart';
+import 'package:ble_proximity_signal/src/signal_config.dart';
+import 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_platform_interface.dart'
+    show RawScanResult;
 
 /// Processes raw scan results into smoothed [ProximityEvent]s.
 class SignalProcessor {
@@ -9,7 +11,7 @@ class SignalProcessor {
   SignalProcessor({
     required Stream<RawScanResult> rawStream,
     required Set<String> targetTokens,
-    required ScanConfig config,
+    required SignalConfig config,
     required void Function(ProximityEvent) onEvent,
     required void Function(Object, StackTrace) onError,
     DateTime Function()? now,
@@ -22,7 +24,7 @@ class SignalProcessor {
 
   final Stream<RawScanResult> _rawStream;
   final Set<String> _targetTokens;
-  final ScanConfig _config;
+  final SignalConfig _config;
   final void Function(ProximityEvent) _onEvent;
   final void Function(Object, StackTrace) _onError;
   final DateTime Function() _now;

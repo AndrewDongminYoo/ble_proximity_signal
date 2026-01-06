@@ -66,8 +66,8 @@ void main() {
     });
 
     test('EMA smoothing dampens intensity spikes', () async {
-      const config = ScanConfig(emaAlpha: 0.2, staleMs: 100000);
-      await ble.startScan(targetTokens: ['aa'], config: config);
+      const signalConfig = SignalConfig(emaAlpha: 0.2, staleMs: 100000);
+      await ble.startScan(targetTokens: ['aa'], signalConfig: signalConfig);
 
       final events = <ProximityEvent>[];
       final sub = ble.events.listen(events.add);
@@ -92,13 +92,13 @@ void main() {
         minDbm: -80,
         maxDbm: -45,
       );
-      const config = ScanConfig(
+      const signalConfig = SignalConfig(
         emaAlpha: 1,
         thresholds: thresholds,
         staleMs: 100000,
       );
 
-      await ble.startScan(targetTokens: ['aa'], config: config);
+      await ble.startScan(targetTokens: ['aa'], signalConfig: signalConfig);
 
       final events = <ProximityEvent>[];
       final sub = ble.events.listen(events.add);
@@ -127,8 +127,8 @@ void main() {
     });
 
     test('stale timeout drops level to far', () async {
-      const config = ScanConfig(emaAlpha: 1, staleMs: 20);
-      await ble.startScan(targetTokens: ['aa'], config: config);
+      const signalConfig = SignalConfig(emaAlpha: 1, staleMs: 20);
+      await ble.startScan(targetTokens: ['aa'], signalConfig: signalConfig);
 
       final events = <ProximityEvent>[];
       final sub = ble.events.listen(events.add);

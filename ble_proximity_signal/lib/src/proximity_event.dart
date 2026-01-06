@@ -2,8 +2,10 @@
 enum ProximityLevel {
   /// Far (No signal)
   far,
+
   /// Close (Signal detected)
   near,
+
   /// Very close (Signal increasing)
   veryNear,
 }

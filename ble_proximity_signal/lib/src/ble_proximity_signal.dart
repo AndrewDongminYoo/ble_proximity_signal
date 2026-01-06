@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:ble_proximity_signal/src/proximity_event.dart';
+import 'package:ble_proximity_signal/src/signal_config.dart';
 import 'package:ble_proximity_signal/src/signal_processor.dart';
 import 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_platform_interface.dart';
 
@@ -32,9 +33,13 @@ class BleProximitySignal {
   Future<void> stopBroadcast() => _platform.stopBroadcast();
 
   /// Starts BLE scan for the given target tokens.
+  ///
+  /// [config] configures native scan filters, while [signalConfig] tunes the
+  /// Dart-side smoothing/hysteresis behavior.
   Future<void> startScan({
     required List<String> targetTokens,
     ScanConfig config = const ScanConfig(),
+    SignalConfig signalConfig = const SignalConfig(),
   }) async {
     if (targetTokens.length > 5) {
       throw ArgumentError.value(
@@ -55,7 +60,7 @@ class BleProximitySignal {
     _processor = SignalProcessor(
       rawStream: _platform.scanResults,
       targetTokens: normalizedTokens,
-      config: config,
+      config: signalConfig,
       onEvent: _eventsController.add,
       onError: _eventsController.addError,
     )..start();
