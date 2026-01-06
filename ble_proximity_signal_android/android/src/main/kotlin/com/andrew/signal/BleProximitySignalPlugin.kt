@@ -33,6 +33,7 @@ class BleProximitySignalPlugin :
 
     // Normalized (hex lowercase) target token set (max 5 expected)
     private var targetTokenSet: Set<String> = emptySet()
+    private var debugAllowAll: Boolean = false
 
     // Current service UUID used for scan/broadcast
     private var currentServiceUuid: UUID? = null
@@ -106,8 +107,9 @@ class BleProximitySignalPlugin :
                     val serviceUuidStr =
                         call.argument<String>("serviceUuid")
                             ?: return result.error("invalid_args", "Missing 'serviceUuid'", null)
+                    val debugAllowAllArg = call.argument<Boolean>("debugAllowAll") ?: false
 
-                    startScanInternal(targetTokens, serviceUuidStr)
+                    startScanInternal(targetTokens, serviceUuidStr, debugAllowAllArg)
                     result.success(null)
                 }
 
@@ -205,19 +207,21 @@ class BleProximitySignalPlugin :
     private fun startScanInternal(
         targetTokens: List<String>,
         serviceUuidStr: String,
+        debugAllowAll: Boolean,
     ) {
         val adapter = bluetoothAdapter ?: throw IllegalStateException("Bluetooth not supported")
         if (!adapter.isEnabled) throw IllegalStateException("Bluetooth is off")
 
-        if (targetTokens.size > 5) {
+        if (!debugAllowAll && targetTokens.size > 5) {
             throw IllegalArgumentException("targetTokens must be <= 5")
         }
 
+        this.debugAllowAll = debugAllowAll
         val uuid = UUID.fromString(serviceUuidStr)
         currentServiceUuid = uuid
 
         // Normalize tokens to hex lowercase to compare
-        targetTokenSet = targetTokens.map { normalizeTokenToHex(it) }.toSet()
+        targetTokenSet = if (debugAllowAll) emptySet() else targetTokens.map { normalizeTokenToHex(it) }.toSet()
 
         scanner = adapter.bluetoothLeScanner ?: throw IllegalStateException("BLE scanner not available")
         stopScanInternal() // idempotent start
@@ -225,9 +229,13 @@ class BleProximitySignalPlugin :
         val parcelUuid = android.os.ParcelUuid(uuid)
 
         val filters =
-            listOf(
-                ScanFilter.Builder().setServiceUuid(parcelUuid).build(),
-            )
+            if (debugAllowAll) {
+                emptyList()
+            } else {
+                listOf(
+                    ScanFilter.Builder().setServiceUuid(parcelUuid).build(),
+                )
+            }
 
         val settings =
             ScanSettings
@@ -243,18 +251,30 @@ class BleProximitySignalPlugin :
                     result: ScanResult,
                 ) {
                     val record = result.scanRecord ?: return
-                    val serviceData = record.getServiceData(parcelUuid) ?: return
+                    val serviceData = record.getServiceData(parcelUuid)
+                    val tokenHex = serviceData?.let { bytesToHexLower(it) }
 
-                    val tokenHex = bytesToHexLower(serviceData)
-                    if (!targetTokenSet.contains(tokenHex)) return
+                    if (!debugAllowAll) {
+                        if (tokenHex == null || !targetTokenSet.contains(tokenHex)) return
+                    }
+
+                    val deviceId = result.device?.address
+                    val deviceName = result.device?.name
+                    val localName = record.deviceName
+                    val manufacturerDataLen = manufacturerDataLength(record)
+                    val targetToken = tokenHex ?: deviceId ?: ""
 
                     val payload =
                         hashMapOf<String, Any>(
-                            "targetToken" to tokenHex,
+                            "targetToken" to targetToken,
                             "rssi" to result.rssi,
                             // Use epoch ms to match iOS and public contract.
                             "timestampMs" to System.currentTimeMillis().toInt(),
                         )
+                    deviceId?.let { payload["deviceId"] = it }
+                    deviceName?.let { payload["deviceName"] = it }
+                    localName?.let { payload["localName"] = it }
+                    manufacturerDataLen?.let { payload["manufacturerDataLen"] = it }
                     eventSink?.success(payload)
                 }
 
@@ -276,7 +296,19 @@ class BleProximitySignalPlugin :
         } finally {
             scanCallback = null
             targetTokenSet = emptySet()
+            debugAllowAll = false
         }
+    }
+
+    private fun manufacturerDataLength(record: ScanRecord): Int? {
+        val data = record.manufacturerSpecificData ?: return null
+        if (data.size() == 0) return null
+        var total = 0
+        for (i in 0 until data.size()) {
+            val bytes = data.valueAt(i)
+            total += bytes?.size ?: 0
+        }
+        return total
     }
 
     // ----------------------------

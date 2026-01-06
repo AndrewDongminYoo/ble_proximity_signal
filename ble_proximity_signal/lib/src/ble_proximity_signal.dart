@@ -41,7 +41,7 @@ class BleProximitySignal {
     ScanConfig config = const ScanConfig(),
     SignalConfig signalConfig = const SignalConfig(),
   }) async {
-    if (targetTokens.length > 5) {
+    if (!config.debugAllowAll && targetTokens.length > 5) {
       throw ArgumentError.value(
         targetTokens.length,
         'targetTokens',
@@ -49,7 +49,7 @@ class BleProximitySignal {
       );
     }
 
-    final normalizedTokens = targetTokens.map(_normalizeToken).toSet();
+    final normalizedTokens = config.debugAllowAll ? <String>{} : targetTokens.map(_normalizeToken).toSet();
 
     try {
       await _platform.stopScan();
@@ -67,7 +67,7 @@ class BleProximitySignal {
 
     try {
       await _platform.startScan(
-        targetTokens: normalizedTokens.toList(),
+        targetTokens: config.debugAllowAll ? <String>[] : normalizedTokens.toList(),
         config: config,
       );
     } catch (_) {

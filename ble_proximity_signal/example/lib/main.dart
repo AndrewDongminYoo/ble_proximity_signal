@@ -49,6 +49,7 @@ class _HomePageState extends State<HomePage> {
   double _intensity = 0;
   int _beepIntervalMs = 0;
   ProximityLevel _level = ProximityLevel.far;
+  bool _debugAllowAll = false;
 
   @override
   void dispose() {
@@ -89,10 +90,12 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _startScan() async {
     final token = _targetController.text.trim();
-    if (token.isEmpty) {
+    if (!_debugAllowAll && token.isEmpty) {
       _showError('Target token is empty.');
       return;
     }
+
+    final targets = _debugAllowAll ? <String>[] : <String>[token];
 
     await _subscription?.cancel();
     _subscription = _ble.events.listen(
@@ -103,7 +106,10 @@ class _HomePageState extends State<HomePage> {
     );
 
     try {
-      await _ble.startScan(targetTokens: [token]);
+      await _ble.startScan(
+        targetTokens: targets,
+        config: ScanConfig(debugAllowAll: _debugAllowAll),
+      );
       setState(() => _scanning = true);
     } on Object catch (error) {
       await _subscription?.cancel();
@@ -239,11 +245,21 @@ class _HomePageState extends State<HomePage> {
                 intervalMs: _beepIntervalMs,
                 rssi: _lastEvent?.rssi,
                 smoothRssi: _lastEvent?.smoothRssi,
+                deviceId: _lastEvent?.deviceId,
+                deviceName: _lastEvent?.deviceName,
+                localName: _lastEvent?.localName,
+                manufacturerDataLen: _lastEvent?.manufacturerDataLen,
               ),
               const SizedBox(height: 24),
+              _DebugCard(
+                enabled: _debugAllowAll,
+                onChanged: (value) => setState(() => _debugAllowAll = value),
+              ),
+              const SizedBox(height: 16),
               _TokenCard(
                 title: 'Target Token',
                 controller: _targetController,
+                enabled: !_debugAllowAll,
                 actionLabel: _scanning ? 'Stop Scan' : 'Start Scan',
                 onAction: _scanning ? _stopScan : _startScan,
                 active: _scanning,
@@ -273,6 +289,10 @@ class _SignalCard extends StatelessWidget {
     required this.intervalMs,
     required this.rssi,
     required this.smoothRssi,
+    required this.deviceId,
+    required this.deviceName,
+    required this.localName,
+    required this.manufacturerDataLen,
   });
 
   final double intensity;
@@ -282,6 +302,10 @@ class _SignalCard extends StatelessWidget {
   final int intervalMs;
   final int? rssi;
   final double? smoothRssi;
+  final String? deviceId;
+  final String? deviceName;
+  final String? localName;
+  final int? manufacturerDataLen;
 
   @override
   Widget build(BuildContext context) {
@@ -363,6 +387,14 @@ class _SignalCard extends StatelessWidget {
                 label: 'Smooth',
                 value: smoothRssi == null ? '--' : smoothRssi!.toStringAsFixed(1),
               ),
+              if (deviceId != null) _MetricChip(label: 'Device ID', value: deviceId!),
+              if (deviceName != null) _MetricChip(label: 'Device Name', value: deviceName!),
+              if (localName != null) _MetricChip(label: 'Local Name', value: localName!),
+              if (manufacturerDataLen != null)
+                _MetricChip(
+                  label: 'MFG Len',
+                  value: manufacturerDataLen.toString(),
+                ),
             ],
           ),
         ],
@@ -487,6 +519,42 @@ class _MetricChip extends StatelessWidget {
   }
 }
 
+class _DebugCard extends StatelessWidget {
+  const _DebugCard({
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF162723),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Debug: scan all peripherals',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Switch.adaptive(value: enabled, onChanged: onChanged),
+        ],
+      ),
+    );
+  }
+}
+
 class _TokenCard extends StatelessWidget {
   const _TokenCard({
     required this.title,
@@ -494,6 +562,7 @@ class _TokenCard extends StatelessWidget {
     required this.actionLabel,
     required this.onAction,
     required this.active,
+    this.enabled = true,
   });
 
   final String title;
@@ -501,6 +570,7 @@ class _TokenCard extends StatelessWidget {
   final String actionLabel;
   final VoidCallback onAction;
   final bool active;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -524,6 +594,7 @@ class _TokenCard extends StatelessWidget {
           const SizedBox(height: 12),
           TextField(
             controller: controller,
+            enabled: enabled,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'hex or base64url',

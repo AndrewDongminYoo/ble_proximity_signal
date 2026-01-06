@@ -24,9 +24,14 @@ class ProximityEvent {
     required this.enteredVeryNear,
     required this.exitedVeryNear,
     required this.timestamp,
+    this.deviceId,
+    this.deviceName,
+    this.localName,
+    this.manufacturerDataLen,
   });
 
   /// Token (normalized hex) for the advertising device.
+  /// In debug mode, this may fall back to the device identifier.
   final String targetToken;
 
   /// Raw RSSI in dBm.
@@ -56,10 +61,24 @@ class ProximityEvent {
   /// Event timestamp (Dart-side clock).
   final DateTime timestamp;
 
+  /// Debug: device identifier (may be randomized on Android).
+  final String? deviceId;
+
+  /// Debug: device name if available.
+  final String? deviceName;
+
+  /// Debug: advertised local name if available.
+  final String? localName;
+
+  /// Debug: manufacturer data length if available.
+  final int? manufacturerDataLen;
+
   @override
   String toString() {
     return 'ProximityEvent(token=$targetToken, rssi=$rssi, '
         'smooth=$smoothRssi, intensity=$intensity, '
-        'level=$level, ts=$timestamp)';
+        'level=$level, ts=$timestamp, deviceId=$deviceId, '
+        'deviceName=$deviceName, localName=$localName, '
+        'manufacturerDataLen=$manufacturerDataLen)';
   }
 }

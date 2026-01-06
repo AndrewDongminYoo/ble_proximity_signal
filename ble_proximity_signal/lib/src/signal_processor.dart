@@ -61,6 +61,10 @@ class SignalProcessor {
         smoothRssi: null,
         lastRssi: raw.rssi,
         level: ProximityLevel.far,
+        deviceId: raw.deviceId,
+        deviceName: raw.deviceName,
+        localName: raw.localName,
+        manufacturerDataLen: raw.manufacturerDataLen,
       ),
     );
 
@@ -75,6 +79,10 @@ class SignalProcessor {
     state
       ..smoothRssi = smooth
       ..lastRssi = raw.rssi
+      ..deviceId = raw.deviceId
+      ..deviceName = raw.deviceName
+      ..localName = raw.localName
+      ..manufacturerDataLen = raw.manufacturerDataLen
       ..staleTimer?.cancel();
 
     state.staleTimer = _scheduleStale(raw.targetToken);
@@ -101,6 +109,10 @@ class SignalProcessor {
         enteredVeryNear: enteredVeryNear,
         exitedVeryNear: exitedVeryNear,
         timestamp: now,
+        deviceId: raw.deviceId,
+        deviceName: raw.deviceName,
+        localName: raw.localName,
+        manufacturerDataLen: raw.manufacturerDataLen,
       ),
     );
   }
@@ -138,6 +150,10 @@ class SignalProcessor {
           enteredVeryNear: false,
           exitedVeryNear: exitedVeryNear,
           timestamp: now,
+          deviceId: state.deviceId,
+          deviceName: state.deviceName,
+          localName: state.localName,
+          manufacturerDataLen: state.manufacturerDataLen,
         ),
       );
     });
@@ -222,10 +238,18 @@ class _TargetState {
     required this.smoothRssi,
     required this.lastRssi,
     required this.level,
+    this.deviceId,
+    this.deviceName,
+    this.localName,
+    this.manufacturerDataLen,
   });
 
   double? smoothRssi;
   int lastRssi;
   ProximityLevel level;
+  String? deviceId;
+  String? deviceName;
+  String? localName;
+  int? manufacturerDataLen;
   Timer? staleTimer;
 }

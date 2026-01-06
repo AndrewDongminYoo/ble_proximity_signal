@@ -13,6 +13,7 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
 
   private var targetTokenSet: Set<String> = []
   private var serviceUUID: CBUUID?
+  private var debugAllowAll = false
 
   // MARK: - FlutterPlugin
 
@@ -63,8 +64,9 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
         guard let serviceUuidStr = args["serviceUuid"] as? String else {
           return result(FlutterError(code: "invalid_args", message: "Missing 'serviceUuid'", details: nil))
         }
+        let debugAllowAll = args["debugAllowAll"] as? Bool ?? false
 
-        try startScan(targetTokens: tokens, serviceUuidStr: serviceUuidStr)
+        try startScan(targetTokens: tokens, serviceUuidStr: serviceUuidStr, debugAllowAll: debugAllowAll)
         result(nil)
 
       case "stopScan":
@@ -130,16 +132,17 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
 
   // MARK: - Scan
 
-  private func startScan(targetTokens: [String], serviceUuidStr: String) throws {
-    if targetTokens.count > 5 {
+  private func startScan(targetTokens: [String], serviceUuidStr: String, debugAllowAll: Bool) throws {
+    if !debugAllowAll, targetTokens.count > 5 {
       throw NSError(domain: "ble_proximity_signal", code: 2, userInfo: [NSLocalizedDescriptionKey: "targetTokens must be <= 5"])
     }
 
     let uuid = CBUUID(string: serviceUuidStr)
     self.serviceUUID = uuid
+    self.debugAllowAll = debugAllowAll
 
     // Normalize tokens to hex lowercase
-    self.targetTokenSet = Set(targetTokens.compactMap { normalizeTokenToHex($0) })
+    self.targetTokenSet = debugAllowAll ? [] : Set(targetTokens.compactMap { normalizeTokenToHex($0) })
 
     if central == nil {
       central = CBCentralManager(delegate: self, queue: nil)
@@ -158,12 +161,17 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
 
     // Allow duplicates so we get continuous RSSI updates (metal detector UX)
     let options: [String: Any] = [CBCentralManagerScanOptionAllowDuplicatesKey: true]
-    central.scanForPeripherals(withServices: [uuid], options: options)
+    if debugAllowAll {
+      central.scanForPeripherals(withServices: nil, options: options)
+    } else {
+      central.scanForPeripherals(withServices: [uuid], options: options)
+    }
   }
 
   private func stopScan() {
     central?.stopScan()
     targetTokenSet = []
+    debugAllowAll = false
   }
 
   // MARK: - CBCentralManagerDelegate
@@ -180,21 +188,34 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
                              advertisementData: [String : Any],
                              rssi RSSI: NSNumber) {
     guard let uuid = self.serviceUUID else { return }
-    guard let serviceData = advertisementData[CBAdvertisementDataServiceDataKey] as? [CBUUID: Data],
-          let tokenBytes = serviceData[uuid] else {
-      return
+    let serviceData = advertisementData[CBAdvertisementDataServiceDataKey] as? [CBUUID: Data]
+    let tokenBytes = serviceData?[uuid]
+    let tokenHex = tokenBytes.map { bytesToHexLower($0) }
+
+    if !debugAllowAll {
+      guard let tokenHex, targetTokenSet.contains(tokenHex) else { return }
     }
 
-    let tokenHex = bytesToHexLower(tokenBytes)
-    if !targetTokenSet.contains(tokenHex) { return }
-
     let tsMs = Int(Date().timeIntervalSince1970 * 1000)
+    let deviceId = peripheral.identifier.uuidString
+    let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+    let manufacturerDataLen = (advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data)?.count
+    let targetToken = tokenHex ?? deviceId
 
-    eventSink?([
-      "targetToken": tokenHex,
+    var payload: [String: Any] = [
+      "targetToken": targetToken,
       "rssi": RSSI.intValue,
-      "timestampMs": tsMs
-    ])
+      "timestampMs": tsMs,
+      "deviceId": deviceId
+    ]
+    if let localName {
+      payload["localName"] = localName
+    }
+    if let manufacturerDataLen {
+      payload["manufacturerDataLen"] = manufacturerDataLen
+    }
+
+    eventSink?(payload)
   }
 
   // MARK: - CBPeripheralManagerDelegate
