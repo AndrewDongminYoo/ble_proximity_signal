@@ -176,7 +176,12 @@ class _HomePageState extends State<HomePage> {
     }
     const minMs = 140;
     const maxMs = 1200;
-    final t = (1 - intensity).clamp(0, 1);
+
+    // 12-step quantization
+    const steps = 12;
+    final stepped = (intensity * (steps - 1)).round() / (steps - 1);
+
+    final t = (1 - stepped).clamp(0, 1);
     return (minMs + (maxMs - minMs) * t).round();
   }
 
