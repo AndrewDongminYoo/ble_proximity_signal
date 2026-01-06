@@ -46,7 +46,12 @@ class BleProximitySignal {
 
     final normalizedTokens = targetTokens.map(_normalizeToken).toSet();
 
-    await _processor?.stop();
+    try {
+      await _platform.stopScan();
+      await _processor?.stop();
+    } on Object catch (_) {
+      // best-effort stop previous native scan
+    }
     _processor = SignalProcessor(
       rawStream: _platform.scanResults,
       targetTokens: normalizedTokens,
