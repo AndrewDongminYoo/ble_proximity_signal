@@ -46,7 +46,7 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
           return result(FlutterError(code: "invalid_args", message: "Missing 'serviceUuid'", details: nil))
         }
 
-        startBroadcast(token: token, serviceUuidStr: serviceUuidStr)
+        try startBroadcast(token: token, serviceUuidStr: serviceUuidStr)
         result(nil)
 
       case "stopBroadcast":
@@ -72,7 +72,7 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
         result(nil)
 
       default:
-        result(FlutterMethodNotImplemented)
+        result(FlutterError(code: "not_implemented", message: "Method not implemented", details: nil))
       }
     } catch let err {
       result(FlutterError(code: "native_error", message: err.localizedDescription, details: nil))
@@ -93,7 +93,7 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
 
   // MARK: - Broadcast (Advertising)
 
-  private func startBroadcast(token: String, serviceUuidStr: String) {
+  private func startBroadcast(token: String, serviceUuidStr: String) throws {
     let uuid = CBUUID(string: serviceUuidStr)
     self.serviceUUID = uuid
 
