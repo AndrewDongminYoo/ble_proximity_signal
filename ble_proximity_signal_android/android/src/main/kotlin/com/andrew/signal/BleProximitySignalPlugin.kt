@@ -1,4 +1,4 @@
-package com.andrew.proximity_signal
+package com.andrew.signal
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager

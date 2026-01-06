@@ -1,4 +1,4 @@
-package com.andrew.proximity_signal.example
+package com.andrew.signal.example
 
 import io.flutter.embedding.android.FlutterActivity
 
