@@ -6,4 +6,6 @@ noaudio
 RSSI
 subosito
 temurin
+xcprivacy
 xctrace
+xcuserdata
