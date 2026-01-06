@@ -1,0 +1,30 @@
+{
+  "[dart]": {
+    "cSpell.fixSpellingWithRenameProvider": true,
+    "editor.suggest.preview": true
+  },
+  "copy-code-as-snippet.aiMode.enabled": true,
+  "copy-code-as-snippet.largeFile.lineThreshold": 2000,
+  "copy-code-as-snippet.largeFile.promptEnabled": true,
+  "copy-code-as-snippet.markdown.fenceStrategy": "autoUpgrade",
+  "dart.buildRunnerAdditionalArgs": ["--delete-conflicting-outputs"],
+  "dart.documentation": "full",
+  "dart.flutterHotReloadOnSave": "all",
+  "dart.lineLength": 120,
+  "dart.openDevTools": "flutter",
+  "dart.previewCommitCharacters": true,
+  "dart.previewFlutterUiGuides": true,
+  "dart.previewFlutterUiGuidesCustomTracking": true,
+  "dart.previewHotReloadOnSaveWatcher": true,
+  "dart.promptToRunIfErrors": true,
+  "dart.renameFilesWithClasses": "prompt",
+  "dart.runPubGetOnNestedProjects": "below",
+  "dart.showTodos": ["TODO", "FIXME", "UNDONE", "HACK"],
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*": "${capture}.lock",
+    "*.dart": "${capture}.*.dart"
+  },
+  "gitlens.ai.generateCommitMessage.customInstructions": "You MUST strictly follow the output format below. Do not generate a summary sentence.\n\n### Output Format\n<type>: <gitmoji> <subject>\n\n<body>\n\n### Rules\n1. **Type**: Use ONLY `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.\n2. **No Scopes**: Never use parentheses after type (e.g., `feat(auth):` is FORBIDDEN. Use `feat:`).\n3. **Emoji Mapping**: \n   - feat: ✨\n   - fix: 🐛\n   - docs: 📝\n   - style: 💄\n   - refactor: ♻️\n   - test: ✅\n   - chore: 🔨 (General) or ⬆️ (Dependencies)\n4. **Subject**: Start with lowercase. No trailing period. Use imperative or past tense.\n5. **Body**: \n   - If dependency update: List exact versions (`- package: from x to y`).\n   - If code change: Explain WHAT and WHY.\n\n### Golden Example (Follow this style exactly)\nchore: ⬆️ bump googleapis dependency\n\nThis commit updates the following dependencies:\n- googleapis: from ^144.0.0 to ^150.0.1\n"
+}
