@@ -9,6 +9,14 @@
   - `ble_proximity_signal_ios/` (iOS implementation; native code in `ios/`)
 - Tests live in each package’s `test/` directory.
 
+## Implementation Goals (v0.1.0)
+
+- Foreground-only advertising + scanning on iOS/Android (no background guarantees).
+- Track up to 5 target tokens and emit a continuous `Stream<ProximityEvent>`.
+- Apply EMA smoothing, hysteresis for near/veryNear, and map RSSI to intensity 0..1.
+- Example app should start/stop broadcast and scan, and display per-target RSSI/intensity/level.
+- Non-goals: distance-in-meters, rolling IDs (v0.2+), or built-in sound/vibration/notifications.
+
 ## Build, Test, and Development Commands
 
 - `cd ble_proximity_signal && flutter pub get` — fetch dependencies for the main package (repeat per package as needed).
