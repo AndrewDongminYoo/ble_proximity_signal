@@ -1,0 +1,24 @@
+{
+  "version": "0.2",
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "dictionaries": ["custom-dictionary", "vgv_allowed", "vgv_forbidden"],
+  "dictionaryDefinitions": [
+    {
+      "name": "custom-dictionary",
+      "path": "./.cspell/custom-dictionary.txt",
+      "addWords": true
+    },
+    {
+      "name": "vgv_allowed",
+      "path": "https://raw.githubusercontent.com/verygoodopensource/very_good_dictionaries/main/allowed.txt",
+      "description": "Allowed VGV Spellings"
+    },
+    {
+      "name": "vgv_forbidden",
+      "path": "https://raw.githubusercontent.com/verygoodopensource/very_good_dictionaries/main/forbidden.txt",
+      "description": "Forbidden VGV Spellings"
+    }
+  ],
+  "useGitignore": true,
+  "words": ["fluttium"]
+}

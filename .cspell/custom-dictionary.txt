@@ -1,0 +1,8 @@
+# Custom Dictionary Words
+fluttium
+gsub
+noaudio
+RSSI
+subosito
+temurin
+xctrace
