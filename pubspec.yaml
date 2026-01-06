@@ -9,3 +9,33 @@ workspace:
   - ble_proximity_signal_platform_interface
 dev_dependencies:
   melos: ^7.3.0
+
+melos:
+  name: ble_proximity_signal
+
+  packages:
+    - ble_proximity_signal
+    - ble_proximity_signal_android
+    - ble_proximity_signal_ios
+    - ble_proximity_signal_platform_interface
+
+  scripts:
+    generate:
+      run: melos exec --depends-on=build_runner -- "dart run build_runner build -d"
+      description: Build all generated files for Dart & Flutter packages in this project.
+
+    test:
+      run: melos exec --dir-exists=test --fail-fast -- "flutter test --test-randomize-ordering-seed random"
+      description: Run Flutter tests for a specific package in this project.
+
+    test:ci:
+      run: melos exec --dir-exists=test --fail-fast -- "flutter test --concurrency 4 --coverage --test-randomize-ordering-seed random"
+      description: Run Flutter tests for a specific package in this project and generate a coverage report.
+
+    format:
+      run: melos exec -- "dart fix --apply ; dart format --line-length 120 ."
+      description: Format all Dart files in this project.
+
+    format:ci:
+      run: melos exec -- "dart format . --set-exit-if-changed"
+      description: Check Dart file formatting for all packages in this project.
