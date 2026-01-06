@@ -1,0 +1,43 @@
+name: ble_proximity_signal
+description: Foreground BLE scanner that maps RSSI to intensity (0..1) for up to 5 target identifiers.
+version: 0.1.0+1
+homepage: https://github.com/AndrewDongminYoo/ble_proximity_signal
+repository: https://github.com/AndrewDongminYoo/ble_proximity_signal
+issue_tracker: https://github.com/AndrewDongminYoo/ble_proximity_signal/issues
+publish_to: none # 임시
+topics:
+  - bluetooth
+  - ble
+  - proximity
+  - rssi
+  - beacon
+  - indoor-positioning
+  - flutter-plugin
+
+environment:
+  sdk: ^3.9.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        default_package: ble_proximity_signal_android
+      ios:
+        default_package: ble_proximity_signal_ios
+
+dependencies:
+  ble_proximity_signal_android:
+    path: ../ble_proximity_signal_android
+  ble_proximity_signal_ios:
+    path: ../ble_proximity_signal_ios
+  ble_proximity_signal_platform_interface:
+    path: ../ble_proximity_signal_platform_interface
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.4
+  plugin_platform_interface: ^2.1.8
+  very_good_analysis: ^10.0.0
