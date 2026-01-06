@@ -16,15 +16,17 @@ void main() {
 
       log = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(bleProximitySignal.methodChannel, (methodCall) async {
-        log.add(methodCall);
-        switch (methodCall.method) {
-          case 'getPlatformName':
-            return kPlatformName;
-          default:
-            return null;
-        }
-      });
+          .setMockMethodCallHandler(bleProximitySignal.methodChannel, (
+            methodCall,
+          ) async {
+            log.add(methodCall);
+            switch (methodCall.method) {
+              case 'getPlatformName':
+                return kPlatformName;
+              default:
+                return null;
+            }
+          });
     });
 
     test('can be registered', () {

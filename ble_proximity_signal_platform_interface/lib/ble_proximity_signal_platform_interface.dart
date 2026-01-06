@@ -17,7 +17,8 @@ abstract class BleProximitySignalPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static BleProximitySignalPlatform _instance = MethodChannelBleProximitySignal();
+  static BleProximitySignalPlatform _instance =
+      MethodChannelBleProximitySignal();
 
   /// The default instance of [BleProximitySignalPlatform] to use.
   ///

@@ -14,23 +14,24 @@ void main() {
       methodChannelBleProximitySignal = MethodChannelBleProximitySignal();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
-        methodChannelBleProximitySignal.methodChannel,
-        (methodCall) async {
-          log.add(methodCall);
-          switch (methodCall.method) {
-            case 'getPlatformName':
-              return kPlatformName;
-            default:
-              return null;
-          }
-        },
-      );
+            methodChannelBleProximitySignal.methodChannel,
+            (methodCall) async {
+              log.add(methodCall);
+              switch (methodCall.method) {
+                case 'getPlatformName':
+                  return kPlatformName;
+                default:
+                  return null;
+              }
+            },
+          );
     });
 
     tearDown(log.clear);
 
     test('getPlatformName', () async {
-      final platformName = await methodChannelBleProximitySignal.getPlatformName();
+      final platformName = await methodChannelBleProximitySignal
+          .getPlatformName();
       expect(
         log,
         <Matcher>[isMethodCall('getPlatformName', arguments: null)],
