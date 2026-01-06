@@ -1,0 +1,27 @@
+version: 2
+enable-beta-ecosystems: true
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+  - package-ecosystem: pub
+    directory: /ble_proximity_signal
+    schedule:
+      interval: daily
+  - package-ecosystem: pub
+    directory: /ble_proximity_signal/example
+    schedule:
+      interval: daily
+  - package-ecosystem: pub
+    directory: /ble_proximity_signal_platform_interface
+    schedule:
+      interval: daily
+  - package-ecosystem: pub
+    directory: /ble_proximity_signal_android
+    schedule:
+      interval: daily
+  - package-ecosystem: pub
+    directory: /ble_proximity_signal_ios
+    schedule:
+      interval: daily
