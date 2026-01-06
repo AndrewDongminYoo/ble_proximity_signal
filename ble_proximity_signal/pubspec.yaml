@@ -17,6 +17,8 @@ topics:
 environment:
   sdk: ^3.9.0
 
+resolution: workspace
+
 flutter:
   plugin:
     platforms:
