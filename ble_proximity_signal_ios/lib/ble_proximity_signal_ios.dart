@@ -14,7 +14,30 @@ class BleProximitySignalIOS extends BleProximitySignalPlatform {
   }
 
   @override
-  Future<String?> getPlatformName() {
-    return methodChannel.invokeMethod<String>('getPlatformName');
+  // TODO: implement scanResults
+  Stream<RawScanResult> get scanResults => throw UnimplementedError();
+
+  @override
+  Future<void> startBroadcast({required String token, BroadcastConfig config = const BroadcastConfig()}) {
+    // TODO: implement startBroadcast
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> startScan({required List<String> targetTokens, ScanConfig config = const ScanConfig()}) {
+    // TODO: implement startScan
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> stopBroadcast() {
+    // TODO: implement stopBroadcast
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> stopScan() {
+    // TODO: implement stopScan
+    throw UnimplementedError();
   }
 }

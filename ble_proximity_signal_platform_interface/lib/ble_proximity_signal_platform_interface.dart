@@ -1,5 +1,83 @@
+import 'dart:async';
+
 import 'package:ble_proximity_signal_platform_interface/src/method_channel_ble_proximity_signal.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+
+/// Shared types (config + raw scan results)
+
+class BroadcastConfig {
+  const BroadcastConfig({
+    this.serviceUuid = defaultServiceUuid,
+    this.txPower,
+  });
+
+  /// Default 128-bit UUID (v0.1.0). Change if you want a custom UUID.
+  static const String defaultServiceUuid = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E';
+
+  /// BLE service UUID used in advertising / scanning filter.
+  final String serviceUuid;
+
+  /// Optional tx power hint. Platform may ignore.
+  final int? txPower;
+
+  Map<String, Object?> toMap() => <String, Object?>{
+    'serviceUuid': serviceUuid,
+    'txPower': txPower,
+  };
+}
+
+class ScanConfig {
+  const ScanConfig({
+    this.serviceUuid = BroadcastConfig.defaultServiceUuid,
+  });
+
+  /// BLE service UUID used to filter scan results.
+  final String serviceUuid;
+
+  Map<String, Object?> toMap() => <String, Object?>{
+    'serviceUuid': serviceUuid,
+  };
+}
+
+/// Raw scan result from native layer.
+/// Dart-side will smooth RSSI and compute intensity / hysteresis.
+class RawScanResult {
+  const RawScanResult({
+    required this.targetToken,
+    required this.rssi,
+    required this.timestampMs,
+  });
+
+  factory RawScanResult.fromMap(Map<Object?, Object?> map) {
+    final token = map['targetToken'];
+    final rssi = map['rssi'];
+    final ts = map['timestampMs'];
+
+    if (token is! String) {
+      throw ArgumentError.value(token, 'targetToken', 'must be a String');
+    }
+    if (rssi is! int) {
+      throw ArgumentError.value(rssi, 'rssi', 'must be an int');
+    }
+    if (ts is! int) {
+      throw ArgumentError.value(ts, 'timestampMs', 'must be an int');
+    }
+
+    return RawScanResult(targetToken: token, rssi: rssi, timestampMs: ts);
+  }
+
+  /// The identifier extracted from advertising payload.
+  final String targetToken;
+
+  /// RSSI in dBm (negative int, e.g. -55).
+  final int rssi;
+
+  /// Epoch milliseconds from native when the scan callback was received.
+  final int timestampMs;
+
+  @override
+  String toString() => 'RawScanResult(token=$targetToken, rssi=$rssi, ts=$timestampMs)';
+}
 
 /// {@template ble_proximity_signal_platform}
 /// The interface that implementations of ble_proximity_signal must implement.
@@ -17,12 +95,9 @@ abstract class BleProximitySignalPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static BleProximitySignalPlatform _instance =
-      MethodChannelBleProximitySignal();
+  static BleProximitySignalPlatform _instance = MethodChannelBleProximitySignal();
 
   /// The default instance of [BleProximitySignalPlatform] to use.
-  ///
-  /// Defaults to [MethodChannelBleProximitySignal].
   static BleProximitySignalPlatform get instance => _instance;
 
   /// Platform-specific plugins should set this with their own platform-specific
@@ -32,6 +107,31 @@ abstract class BleProximitySignalPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  /// Return the current platform name.
-  Future<String?> getPlatformName();
+  /// Starts BLE advertising with the given token.
+  ///
+  /// Foreground-only (v0.1.0). Platform may reject if BLE is unavailable/off.
+  Future<void> startBroadcast({
+    required String token,
+    BroadcastConfig config = const BroadcastConfig(),
+  });
+
+  /// Stops BLE advertising.
+  Future<void> stopBroadcast();
+
+  /// Starts scanning BLE advertisements and filters only [targetTokens].
+  ///
+  /// `targetTokens.length` must be <= 5 (enforced in the Dart wrapper package,
+  /// but platforms may also validate).
+  Future<void> startScan({
+    required List<String> targetTokens,
+    ScanConfig config = const ScanConfig(),
+  });
+
+  /// Stops scanning.
+  Future<void> stopScan();
+
+  /// Raw scan result stream from native.
+  ///
+  /// Dart-side will do smoothing/threshold/intensity mapping.
+  Stream<RawScanResult> get scanResults;
 }
