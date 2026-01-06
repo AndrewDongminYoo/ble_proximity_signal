@@ -1,10 +1,11 @@
 import 'dart:async';
 
+import 'package:ble_proximity_signal/src/proximity_event.dart';
 import 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_platform_interface.dart';
 
-import 'proximity_event.dart';
-
+/// Processes raw scan results into smoothed [ProximityEvent]s.
 class SignalProcessor {
+  /// Processes raw scan results into smoothed [ProximityEvent]s.
   SignalProcessor({
     required Stream<RawScanResult> rawStream,
     required Set<String> targetTokens,
@@ -12,12 +13,12 @@ class SignalProcessor {
     required void Function(ProximityEvent) onEvent,
     required void Function(Object, StackTrace) onError,
     DateTime Function()? now,
-  })  : _rawStream = rawStream,
-        _targetTokens = targetTokens,
-        _config = config,
-        _onEvent = onEvent,
-        _onError = onError,
-        _now = now ?? DateTime.now;
+  }) : _rawStream = rawStream,
+       _targetTokens = targetTokens,
+       _config = config,
+       _onEvent = onEvent,
+       _onError = onError,
+       _now = now ?? DateTime.now;
 
   final Stream<RawScanResult> _rawStream;
   final Set<String> _targetTokens;
@@ -30,10 +31,12 @@ class SignalProcessor {
 
   StreamSubscription<RawScanResult>? _subscription;
 
+  /// Starts listening to the raw scan stream.
   void start() {
     _subscription ??= _rawStream.listen(_handleRaw, onError: _onError);
   }
 
+  /// Stops listening and clears cached target state.
   Future<void> stop() async {
     await _subscription?.cancel();
     _subscription = null;
@@ -79,16 +82,10 @@ class SignalProcessor {
 
     final intensity = _mapIntensity(smooth, _config.thresholds);
 
-    final enteredNear =
-        prevLevel == ProximityLevel.far && nextLevel != ProximityLevel.far;
-    final exitedNear =
-        prevLevel != ProximityLevel.far && nextLevel == ProximityLevel.far;
-    final enteredVeryNear =
-        prevLevel != ProximityLevel.veryNear &&
-            nextLevel == ProximityLevel.veryNear;
-    final exitedVeryNear =
-        prevLevel == ProximityLevel.veryNear &&
-            nextLevel != ProximityLevel.veryNear;
+    final enteredNear = prevLevel == ProximityLevel.far && nextLevel != ProximityLevel.far;
+    final exitedNear = prevLevel != ProximityLevel.far && nextLevel == ProximityLevel.far;
+    final enteredVeryNear = prevLevel != ProximityLevel.veryNear && nextLevel == ProximityLevel.veryNear;
+    final exitedVeryNear = prevLevel == ProximityLevel.veryNear && nextLevel != ProximityLevel.veryNear;
 
     _onEvent(
       ProximityEvent(

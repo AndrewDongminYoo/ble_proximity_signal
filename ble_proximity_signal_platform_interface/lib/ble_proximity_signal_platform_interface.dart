@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:ble_proximity_signal_platform_interface/src/method_channel_ble_proximity_signal.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-/// Shared types (config + raw scan results)
-
+/// Configuration for broadcasting messages or events.
 class BroadcastConfig {
+  /// Configuration for broadcasting messages or events.
   const BroadcastConfig({
     this.serviceUuid = defaultServiceUuid,
     this.txPower,
@@ -26,13 +26,58 @@ class BroadcastConfig {
   };
 }
 
+/// Thresholds for proximity hysteresis and intensity mapping.
+class Thresholds {
+  /// Thresholds for proximity hysteresis and intensity mapping.
+  const Thresholds({
+    this.enterNearDbm = -60,
+    this.exitNearDbm = -65,
+    this.enterVeryNearDbm = -52,
+    this.exitVeryNearDbm = -56,
+    this.minDbm = -80,
+    this.maxDbm = -45,
+  });
+
+  /// dBm threshold to enter near.
+  final int enterNearDbm;
+
+  /// dBm threshold to exit near.
+  final int exitNearDbm;
+
+  /// dBm threshold to enter very near.
+  final int enterVeryNearDbm;
+
+  /// dBm threshold to exit very near.
+  final int exitVeryNearDbm;
+
+  /// Minimum dBm used to map intensity to 0.
+  final int minDbm;
+
+  /// Maximum dBm used to map intensity to 1.
+  final int maxDbm;
+}
+
+/// Scan configuration used by the Dart-side signal processor.
 class ScanConfig {
+  /// Scan configuration used by the Dart-side signal processor.
   const ScanConfig({
     this.serviceUuid = BroadcastConfig.defaultServiceUuid,
+    this.emaAlpha = 0.2,
+    this.thresholds = const Thresholds(),
+    this.staleMs = 1500,
   });
 
   /// BLE service UUID used to filter scan results.
   final String serviceUuid;
+
+  /// Exponential moving average alpha (0..1).
+  final double emaAlpha;
+
+  /// Hysteresis thresholds + intensity mapping bounds.
+  final Thresholds thresholds;
+
+  /// Stale timeout in milliseconds.
+  final int staleMs;
 
   Map<String, Object?> toMap() => <String, Object?>{
     'serviceUuid': serviceUuid,
@@ -42,6 +87,7 @@ class ScanConfig {
 /// Raw scan result from native layer.
 /// Dart-side will smooth RSSI and compute intensity / hysteresis.
 class RawScanResult {
+  /// Raw scan result from native layer.
   const RawScanResult({
     required this.targetToken,
     required this.rssi,

@@ -1,10 +1,4 @@
-import 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_platform_interface.dart';
-
-BleProximitySignalPlatform get _platform => BleProximitySignalPlatform.instance;
-
-/// Returns the name of the current platform.
-Future<String> getPlatformName() async {
-  final platformName = await _platform.getPlatformName();
-  if (platformName == null) throw Exception('Unable to get platform name.');
-  return platformName;
-}
+export 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_platform_interface.dart'
+    show BroadcastConfig, RawScanResult, ScanConfig, Thresholds;
+export 'src/ble_proximity_signal.dart' show BleProximitySignal;
+export 'src/proximity_event.dart' show ProximityEvent, ProximityLevel;

@@ -8,31 +8,54 @@ class MethodChannelBleProximitySignal extends BleProximitySignalPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('ble_proximity_signal');
 
-  @override
-  // TODO: implement scanResults
-  Stream<RawScanResult> get scanResults => throw UnimplementedError();
+  static const EventChannel _eventChannel = EventChannel('ble_proximity_signal/events');
 
   @override
-  Future<void> startBroadcast({required String token, BroadcastConfig config = const BroadcastConfig()}) {
-    // TODO: implement startBroadcast
-    throw UnimplementedError();
+  Stream<RawScanResult> get scanResults =>
+      _eventChannel.receiveBroadcastStream().map((event) => RawScanResult.fromMap(_castEvent(event)));
+
+  @override
+  Future<void> startBroadcast({
+    required String token,
+    BroadcastConfig config = const BroadcastConfig(),
+  }) {
+    return methodChannel.invokeMethod<void>(
+      'startBroadcast',
+      <String, Object?>{
+        'token': token,
+        ...config.toMap(),
+      },
+    );
   }
 
   @override
-  Future<void> startScan({required List<String> targetTokens, ScanConfig config = const ScanConfig()}) {
-    // TODO: implement startScan
-    throw UnimplementedError();
+  Future<void> startScan({
+    required List<String> targetTokens,
+    ScanConfig config = const ScanConfig(),
+  }) {
+    return methodChannel.invokeMethod<void>(
+      'startScan',
+      <String, Object?>{
+        'targetTokens': targetTokens,
+        ...config.toMap(),
+      },
+    );
   }
 
   @override
   Future<void> stopBroadcast() {
-    // TODO: implement stopBroadcast
-    throw UnimplementedError();
+    return methodChannel.invokeMethod<void>('stopBroadcast');
   }
 
   @override
   Future<void> stopScan() {
-    // TODO: implement stopScan
-    throw UnimplementedError();
+    return methodChannel.invokeMethod<void>('stopScan');
   }
+}
+
+Map<Object?, Object?> _castEvent(Object? event) {
+  if (event is Map<Object?, Object?>) {
+    return event;
+  }
+  throw ArgumentError.value(event, 'event', 'Expected a map');
 }
