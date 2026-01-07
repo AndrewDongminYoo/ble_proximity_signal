@@ -1,4 +1,9 @@
-description: Test if plugin returns correct platform name
+description: "Smoke test: scan + broadcast toggles"
 ---
-- pressOn: Get Platform Name
-- checkPlatformName:
+- expectVisible: Metal Detector
+- expectVisible: Idle
+
+- pressOn: Start Scan
+- expectVisible: Scanning…
+- pressOn: Stop Scan
+- expectVisible: Idle

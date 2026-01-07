@@ -879,6 +879,7 @@ class _TokenCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           TextField(
+            key: const Key('target_token_field'),
             controller: controller,
             enabled: enabled,
             style: const TextStyle(color: Colors.white),
@@ -897,6 +898,7 @@ class _TokenCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
+              key: Key(title == 'Target Token' ? 'target_scan_button' : 'broadcast_button'),
               onPressed: onAction,
               style: FilledButton.styleFrom(
                 backgroundColor: active ? const Color(0xFFFF6B5F) : const Color(0xFF66CDAA),
