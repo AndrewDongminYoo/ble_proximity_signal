@@ -7,7 +7,7 @@ Developed with 💙 by [Very Good Ventures][very_good_ventures_link] 🦄
 
 ![coverage][coverage_badge]
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
-[![License: MIT][license_badge]][license_link]
+[![License: BSD-3-Clause][license_badge]][license_link]
 
 A Very Good Flutter Federated Plugin created by the [Very Good Ventures Team][very_good_ventures_link].
 
@@ -157,8 +157,8 @@ fluttium test flows/test_platform_name.yaml
 > update the flow steps accordingly.
 
 [coverage_badge]: ble_proximity_signal/coverage_badge.svg
-[license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[license_link]: https://opensource.org/licenses/MIT
+[license_badge]: https://img.shields.io/badge/license-BSD-green.svg
+[license_link]: https://opensource.org/license/bsd-3-clause
 [logo_black]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_black.png#gh-light-mode-only
 [logo_white]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_white.png#gh-dark-mode-only
 [very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg
