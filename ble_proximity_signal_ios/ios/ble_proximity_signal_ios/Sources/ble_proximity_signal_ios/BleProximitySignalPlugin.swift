@@ -2,7 +2,7 @@ import Flutter
 import UIKit
 import CoreBluetooth
 
-public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, CBCentralManagerDelegate, CBPeripheralManagerDelegate {
+public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, CBCentralManagerDelegate, CBPeripheralDelegate, CBPeripheralManagerDelegate {
 
   private var methodChannel: FlutterMethodChannel?
   private var eventChannel: FlutterEventChannel?
@@ -14,6 +14,24 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
   private var targetTokenSet: Set<String> = []
   private var serviceUUID: CBUUID?
   private var debugAllowAll = false
+  private var discoveredPeripherals: [String: CBPeripheral] = [:]
+  private var pendingDiscovery: DiscoveryContext?
+
+  private class DiscoveryContext {
+    let deviceId: String
+    let peripheral: CBPeripheral
+    let result: FlutterResult
+    var services: [CBService] = []
+    var characteristics: [CBUUID: [CBCharacteristic]] = [:]
+    var remainingCharacteristics = 0
+    var timeoutTimer: Timer?
+
+    init(deviceId: String, peripheral: CBPeripheral, result: @escaping FlutterResult) {
+      self.deviceId = deviceId
+      self.peripheral = peripheral
+      self.result = result
+    }
+  }
 
   // MARK: - FlutterPlugin
 
@@ -72,6 +90,17 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
       case "stopScan":
         stopScan()
         result(nil)
+
+      case "debugDiscoverServices":
+        guard let args = call.arguments as? [String: Any] else {
+          return result(FlutterError(code: "invalid_args", message: "Missing args", details: nil))
+        }
+        guard let deviceId = args["deviceId"] as? String else {
+          return result(FlutterError(code: "invalid_args", message: "Missing 'deviceId'", details: nil))
+        }
+        let timeoutMs = args["timeoutMs"] as? Int ?? 8000
+
+        debugDiscoverServices(deviceId: deviceId, timeoutMs: timeoutMs, result: result)
 
       default:
         result(FlutterError(code: "not_implemented", message: "Method not implemented", details: nil))
@@ -180,6 +209,51 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     stopScanInternal(resetState: true)
   }
 
+  // MARK: - Debug Discovery
+
+  private func debugDiscoverServices(
+    deviceId: String,
+    timeoutMs: Int,
+    result: @escaping FlutterResult
+  ) {
+    if pendingDiscovery != nil {
+      result(FlutterError(code: "busy", message: "Discovery already in progress", details: nil))
+      return
+    }
+    if central == nil {
+      central = CBCentralManager(delegate: self, queue: nil)
+    }
+    guard let central = central else {
+      result(FlutterError(code: "unavailable", message: "Central manager unavailable", details: nil))
+      return
+    }
+    guard central.state == .poweredOn else {
+      result(FlutterError(code: "unavailable", message: "Bluetooth is off", details: nil))
+      return
+    }
+    guard let uuid = UUID(uuidString: deviceId) else {
+      result(FlutterError(code: "invalid_args", message: "Invalid deviceId", details: nil))
+      return
+    }
+
+    let peripheral =
+      discoveredPeripherals[deviceId]
+        ?? central.retrievePeripherals(withIdentifiers: [uuid]).first
+    guard let target = peripheral else {
+      result(FlutterError(code: "not_found", message: "Device not found", details: nil))
+      return
+    }
+
+    let context = DiscoveryContext(deviceId: deviceId, peripheral: target, result: result)
+    context.timeoutTimer = Timer.scheduledTimer(withTimeInterval: Double(timeoutMs) / 1000.0, repeats: false) {
+      [weak self] _ in
+      self?.finishDiscovery(context: context, errorMessage: "Timeout after \(timeoutMs)ms")
+    }
+    pendingDiscovery = context
+    target.delegate = self
+    central.connect(target, options: nil)
+  }
+
   // MARK: - CBCentralManagerDelegate
 
   public func centralManagerDidUpdateState(_ central: CBCentralManager) {
@@ -209,12 +283,20 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
 
     let tsMs = Int(Date().timeIntervalSince1970 * 1000)
     let deviceId = peripheral.identifier.uuidString
+    discoveredPeripherals[deviceId] = peripheral
     let manufacturerDataLen = (advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data)?.count
+    let manufacturerDataHex =
+      (advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data).map { bytesToHexLower($0) }
     let serviceDataLen = serviceData?.reduce(0) { $0 + $1.value.count }
     let serviceDataUuids = serviceData?.keys.map { $0.uuidString }
+    let serviceDataHex =
+      serviceData?.reduce(into: [String: String]()) { partial, entry in
+        partial[entry.key.uuidString] = bytesToHexLower(entry.value)
+      }
     let serviceUuids =
       (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID])?.map { $0.uuidString }
     let targetToken = tokenHex ?? deviceId
+    let localNameHex = localName?.data(using: .utf8).map { bytesToHexLower($0) }
 
     var payload: [String: Any] = [
       "targetToken": targetToken,
@@ -225,8 +307,14 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     if let localName {
       payload["localName"] = localName
     }
+    if let localNameHex {
+      payload["localNameHex"] = localNameHex
+    }
     if let manufacturerDataLen {
       payload["manufacturerDataLen"] = manufacturerDataLen
+    }
+    if let manufacturerDataHex {
+      payload["manufacturerDataHex"] = manufacturerDataHex
     }
     if let serviceDataLen, serviceDataLen > 0 {
       payload["serviceDataLen"] = serviceDataLen
@@ -234,11 +322,118 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     if let serviceDataUuids, !serviceDataUuids.isEmpty {
       payload["serviceDataUuids"] = serviceDataUuids
     }
+    if let serviceDataHex, !serviceDataHex.isEmpty {
+      payload["serviceDataHex"] = serviceDataHex
+    }
     if let serviceUuids, !serviceUuids.isEmpty {
       payload["serviceUuids"] = serviceUuids
     }
 
     eventSink?(payload)
+  }
+
+  public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+    guard let context = pendingDiscovery, context.peripheral == peripheral else { return }
+    peripheral.discoverServices(nil)
+  }
+
+  public func centralManager(
+    _ central: CBCentralManager,
+    didFailToConnect peripheral: CBPeripheral,
+    error: Error?
+  ) {
+    guard let context = pendingDiscovery, context.peripheral == peripheral else { return }
+    finishDiscovery(context: context, errorMessage: error?.localizedDescription ?? "Connect failed")
+  }
+
+  public func centralManager(
+    _ central: CBCentralManager,
+    didDisconnectPeripheral peripheral: CBPeripheral,
+    error: Error?
+  ) {
+    guard let context = pendingDiscovery, context.peripheral == peripheral else { return }
+    if let error {
+      finishDiscovery(context: context, errorMessage: error.localizedDescription)
+    }
+  }
+
+  // MARK: - CBPeripheralDelegate
+
+  public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+    guard let context = pendingDiscovery, context.peripheral == peripheral else { return }
+    if let error {
+      finishDiscovery(context: context, errorMessage: error.localizedDescription)
+      return
+    }
+    let services = peripheral.services ?? []
+    context.services = services
+    if services.isEmpty {
+      finishDiscovery(context: context, errorMessage: nil)
+      return
+    }
+    context.remainingCharacteristics = services.count
+    for service in services {
+      peripheral.discoverCharacteristics(nil, for: service)
+    }
+  }
+
+  public func peripheral(
+    _ peripheral: CBPeripheral,
+    didDiscoverCharacteristicsFor service: CBService,
+    error: Error?
+  ) {
+    guard let context = pendingDiscovery, context.peripheral == peripheral else { return }
+    if let error {
+      finishDiscovery(context: context, errorMessage: error.localizedDescription)
+      return
+    }
+    context.characteristics[service.uuid] = service.characteristics ?? []
+    context.remainingCharacteristics -= 1
+    if context.remainingCharacteristics <= 0 {
+      finishDiscovery(context: context, errorMessage: nil)
+    }
+  }
+
+  private func finishDiscovery(context: DiscoveryContext, errorMessage: String?) {
+    context.timeoutTimer?.invalidate()
+    context.timeoutTimer = nil
+    pendingDiscovery = nil
+    central?.cancelPeripheralConnection(context.peripheral)
+
+    if let errorMessage {
+      context.result(FlutterError(code: "debug_discover_failed", message: errorMessage, details: nil))
+      return
+    }
+    let dump = buildDiscoveryDump(context: context)
+    context.result(dump)
+  }
+
+  private func buildDiscoveryDump(context: DiscoveryContext) -> String {
+    var lines: [String] = []
+    lines.append("deviceId: \(context.deviceId)")
+    let name = context.peripheral.name ?? "unknown"
+    lines.append("name: \(name)")
+    for service in context.services {
+      lines.append("service \(service.uuid.uuidString)")
+      let characteristics = context.characteristics[service.uuid] ?? []
+      for ch in characteristics {
+        let props = describeProperties(ch.properties)
+        lines.append("  char \(ch.uuid.uuidString) props=\(props)")
+      }
+    }
+    return lines.joined(separator: "\n")
+  }
+
+  private func describeProperties(_ properties: CBCharacteristicProperties) -> String {
+    var parts: [String] = []
+    if properties.contains(.read) { parts.append("read") }
+    if properties.contains(.write) { parts.append("write") }
+    if properties.contains(.writeWithoutResponse) { parts.append("writeNoResponse") }
+    if properties.contains(.notify) { parts.append("notify") }
+    if properties.contains(.indicate) { parts.append("indicate") }
+    if properties.contains(.authenticatedSignedWrites) { parts.append("signedWrite") }
+    if properties.contains(.extendedProperties) { parts.append("extendedProps") }
+    return parts.isEmpty ? "none" : parts.joined(separator: "|")
   }
 
   // MARK: - CBPeripheralManagerDelegate

@@ -59,9 +59,12 @@ class RawScanResult {
     this.deviceId,
     this.deviceName,
     this.localName,
+    this.localNameHex,
     this.manufacturerDataLen,
+    this.manufacturerDataHex,
     this.serviceDataLen,
     this.serviceDataUuids,
+    this.serviceDataHex,
     this.serviceUuids,
   });
 
@@ -73,9 +76,12 @@ class RawScanResult {
     final deviceId = map['deviceId'];
     final deviceName = map['deviceName'];
     final localName = map['localName'];
+    final localNameHex = map['localNameHex'];
     final manufacturerDataLen = map['manufacturerDataLen'];
+    final manufacturerDataHex = map['manufacturerDataHex'];
     final serviceDataLen = map['serviceDataLen'];
     final serviceDataUuids = map['serviceDataUuids'];
+    final serviceDataHex = map['serviceDataHex'];
     final serviceUuids = map['serviceUuids'];
 
     if (token is! String) {
@@ -96,11 +102,21 @@ class RawScanResult {
     if (localName != null && localName is! String) {
       throw ArgumentError.value(localName, 'localName', 'must be a String');
     }
+    if (localNameHex != null && localNameHex is! String) {
+      throw ArgumentError.value(localNameHex, 'localNameHex', 'must be a String');
+    }
     if (manufacturerDataLen != null && manufacturerDataLen is! int) {
       throw ArgumentError.value(
         manufacturerDataLen,
         'manufacturerDataLen',
         'must be an int',
+      );
+    }
+    if (manufacturerDataHex != null && manufacturerDataHex is! String) {
+      throw ArgumentError.value(
+        manufacturerDataHex,
+        'manufacturerDataHex',
+        'must be a String',
       );
     }
     if (serviceDataLen != null && serviceDataLen is! int) {
@@ -124,6 +140,24 @@ class RawScanResult {
             serviceDataUuids,
             'serviceDataUuids',
             'must contain only String values',
+          );
+        }
+      }
+    }
+    if (serviceDataHex != null) {
+      if (serviceDataHex is! Map) {
+        throw ArgumentError.value(
+          serviceDataHex,
+          'serviceDataHex',
+          'must be a Map<String, String>',
+        );
+      }
+      for (final entry in serviceDataHex.entries) {
+        if (entry.key is! String || entry.value is! String) {
+          throw ArgumentError.value(
+            serviceDataHex,
+            'serviceDataHex',
+            'must contain only String keys and values',
           );
         }
       }
@@ -154,9 +188,12 @@ class RawScanResult {
       deviceId: deviceId as String?,
       deviceName: deviceName as String?,
       localName: localName as String?,
+      localNameHex: localNameHex as String?,
       manufacturerDataLen: manufacturerDataLen as int?,
+      manufacturerDataHex: manufacturerDataHex as String?,
       serviceDataLen: serviceDataLen as int?,
       serviceDataUuids: serviceDataUuids == null ? null : List<String>.from(serviceDataUuids as List),
+      serviceDataHex: serviceDataHex == null ? null : Map<String, String>.from(serviceDataHex as Map),
       serviceUuids: serviceUuids == null ? null : List<String>.from(serviceUuids as List),
     );
   }
@@ -181,14 +218,23 @@ class RawScanResult {
   /// Debug: advertised local name if available.
   final String? localName;
 
+  /// Debug: hex-encoded local name payload if available.
+  final String? localNameHex;
+
   /// Debug: manufacturer data length if available.
   final int? manufacturerDataLen;
+
+  /// Debug: hex-encoded manufacturer data if available.
+  final String? manufacturerDataHex;
 
   /// Debug: total service data length if available.
   final int? serviceDataLen;
 
   /// Debug: service data UUID keys if available.
   final List<String>? serviceDataUuids;
+
+  /// Debug: hex-encoded service data payloads keyed by UUID.
+  final Map<String, String>? serviceDataHex;
 
   /// Debug: advertised service UUIDs if available.
   final List<String>? serviceUuids;
@@ -197,8 +243,10 @@ class RawScanResult {
   String toString() {
     return 'RawScanResult(token=$targetToken, rssi=$rssi, ts=$timestampMs, '
         'deviceId=$deviceId, deviceName=$deviceName, localName=$localName, '
-        'serviceDataLen=$serviceDataLen, serviceDataUuids=$serviceDataUuids, '
-        'serviceUuids=$serviceUuids, manufacturerDataLen=$manufacturerDataLen)';
+        'localNameHex=$localNameHex, serviceDataLen=$serviceDataLen, '
+        'serviceDataUuids=$serviceDataUuids, serviceDataHex=$serviceDataHex, '
+        'serviceUuids=$serviceUuids, manufacturerDataLen=$manufacturerDataLen, '
+        'manufacturerDataHex=$manufacturerDataHex)';
   }
 }
 

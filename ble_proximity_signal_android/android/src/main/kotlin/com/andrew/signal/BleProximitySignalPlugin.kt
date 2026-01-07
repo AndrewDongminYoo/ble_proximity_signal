@@ -1,9 +1,18 @@
 package com.andrew.signal
 
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.*
 import android.content.Context
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.annotation.NonNull
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
@@ -37,6 +46,18 @@ class BleProximitySignalPlugin :
 
     // Current service UUID used for scan/broadcast
     private var currentServiceUuid: UUID? = null
+
+    // Debug: discovered devices for connect + discover
+    private val discoveredDevices: MutableMap<String, BluetoothDevice> = mutableMapOf()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var pendingDiscovery: DiscoveryRequest? = null
+
+    private data class DiscoveryRequest(
+        val deviceId: String,
+        val result: MethodChannel.Result,
+        var gatt: BluetoothGatt? = null,
+        var timeout: Runnable? = null,
+    )
 
     override fun onAttachedToEngine(
         @NonNull binding: FlutterPlugin.FlutterPluginBinding,
@@ -116,6 +137,14 @@ class BleProximitySignalPlugin :
                 "stopScan" -> {
                     stopScanInternal(resetState = true)
                     result.success(null)
+                }
+
+                "debugDiscoverServices" -> {
+                    val deviceId =
+                        call.argument<String>("deviceId")
+                            ?: return result.error("invalid_args", "Missing 'deviceId'", null)
+                    val timeoutMs = call.argument<Int>("timeoutMs") ?: 8000
+                    debugDiscoverServicesInternal(deviceId, timeoutMs, result)
                 }
 
                 else -> {
@@ -252,6 +281,9 @@ class BleProximitySignalPlugin :
                     result: ScanResult,
                 ) {
                     val record = result.scanRecord ?: return
+                    result.device?.address?.let { address ->
+                        discoveredDevices[address] = result.device
+                    }
                     val serviceData = record.getServiceData(parcelUuid)
                     val tokenHexFromServiceData = serviceData?.let { bytesToHexLower(it) }
 
@@ -269,11 +301,20 @@ class BleProximitySignalPlugin :
                     }
 
                     val manufacturerDataLen = manufacturerDataLength(record)
+                    val manufacturerDataHex = manufacturerDataHex(record)
                     val sd = record.serviceData
                     val serviceDataLen = sd?.values?.sumOf { it.size } ?: 0
                     val serviceDataUuids = sd?.keys?.map { it.uuid.toString() } ?: emptyList()
+                    val serviceDataHex =
+                        sd
+                            ?.entries
+                            ?.associate { entry ->
+                                entry.key.uuid.toString() to bytesToHexLower(entry.value)
+                            }.orEmpty()
                     val serviceUuids = record.serviceUuids?.map { it.uuid.toString() } ?: emptyList()
                     val targetToken = tokenHex ?: deviceId ?: localName ?: ""
+                    val localNameHex =
+                        localName?.let { bytesToHexLower(it.toByteArray(Charsets.UTF_8)) }
 
                     val payload =
                         hashMapOf<String, Any>(
@@ -285,12 +326,17 @@ class BleProximitySignalPlugin :
                     deviceId?.let { payload["deviceId"] = it }
                     deviceName?.let { payload["deviceName"] = it }
                     localName?.let { payload["localName"] = it }
+                    localNameHex?.let { payload["localNameHex"] = it }
                     manufacturerDataLen?.let { payload["manufacturerDataLen"] = it }
+                    manufacturerDataHex?.let { payload["manufacturerDataHex"] = it }
                     if (serviceDataLen > 0) {
                         payload["serviceDataLen"] = serviceDataLen
                     }
                     if (serviceDataUuids.isNotEmpty()) {
                         payload["serviceDataUuids"] = serviceDataUuids
+                    }
+                    if (serviceDataHex.isNotEmpty()) {
+                        payload["serviceDataHex"] = serviceDataHex
                     }
                     if (serviceUuids.isNotEmpty()) {
                         payload["serviceUuids"] = serviceUuids
@@ -319,6 +365,7 @@ class BleProximitySignalPlugin :
         if (resetState) {
             targetTokenSet = emptySet()
             debugAllowAll = false
+            discoveredDevices.clear()
         }
     }
 
@@ -331,6 +378,164 @@ class BleProximitySignalPlugin :
             total += bytes?.size ?: 0
         }
         return total
+    }
+
+    private fun manufacturerDataHex(record: ScanRecord): String? {
+        val data = record.manufacturerSpecificData ?: return null
+        if (data.size() == 0) return null
+        val parts = mutableListOf<String>()
+        for (i in 0 until data.size()) {
+            val id = data.keyAt(i)
+            val bytes = data.valueAt(i) ?: continue
+            val hex = bytesToHexLower(bytes)
+            parts.add(String.format(Locale.US, "%04x:%s", id, hex))
+        }
+        return if (parts.isEmpty()) null else parts.joinToString(",")
+    }
+
+    // ----------------------------
+    // Debug connect + discover
+    // ----------------------------
+
+    private fun debugDiscoverServicesInternal(
+        deviceId: String,
+        timeoutMs: Int,
+        result: MethodChannel.Result,
+    ) {
+        if (pendingDiscovery != null) {
+            result.error("busy", "Discovery already in progress", null)
+            return
+        }
+        val adapter =
+            bluetoothAdapter ?: run {
+                result.error("unsupported", "Bluetooth not supported", null)
+                return
+            }
+        val device =
+            discoveredDevices[deviceId]
+                ?: runCatching { adapter.getRemoteDevice(deviceId) }.getOrNull()
+        if (device == null) {
+            result.error("not_found", "Device not found: $deviceId", null)
+            return
+        }
+
+        val request = DiscoveryRequest(deviceId = deviceId, result = result)
+        pendingDiscovery = request
+
+        val callback =
+            object : BluetoothGattCallback() {
+                override fun onConnectionStateChange(
+                    gatt: BluetoothGatt,
+                    status: Int,
+                    newState: Int,
+                ) {
+                    if (pendingDiscovery?.gatt != gatt) return
+                    if (status != BluetoothGatt.GATT_SUCCESS) {
+                        finishDiscoveryError("Connection failed: $status")
+                        return
+                    }
+                    if (newState == BluetoothProfile.STATE_CONNECTED) {
+                        gatt.discoverServices()
+                    } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                        finishDiscoveryError("Disconnected")
+                    }
+                }
+
+                override fun onServicesDiscovered(
+                    gatt: BluetoothGatt,
+                    status: Int,
+                ) {
+                    if (pendingDiscovery?.gatt != gatt) return
+                    if (status != BluetoothGatt.GATT_SUCCESS) {
+                        finishDiscoveryError("Service discovery failed: $status")
+                        return
+                    }
+                    val dump = buildGattDump(gatt, deviceId)
+                    finishDiscoverySuccess(dump)
+                }
+            }
+
+        val gatt =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                device.connectGatt(applicationContext, false, callback, BluetoothDevice.TRANSPORT_LE)
+            } else {
+                device.connectGatt(applicationContext, false, callback)
+            }
+        if (gatt == null) {
+            pendingDiscovery = null
+            result.error("connect_failed", "Unable to connect to $deviceId", null)
+            return
+        }
+        request.gatt = gatt
+        val timeout =
+            Runnable {
+                finishDiscoveryError("Timeout after ${timeoutMs}ms")
+            }
+        request.timeout = timeout
+        mainHandler.postDelayed(timeout, timeoutMs.toLong())
+    }
+
+    private fun finishDiscoverySuccess(dump: String) {
+        val request = pendingDiscovery ?: return
+        pendingDiscovery = null
+        request.timeout?.let { mainHandler.removeCallbacks(it) }
+        request.result.success(dump)
+        request.gatt?.disconnect()
+        request.gatt?.close()
+    }
+
+    private fun finishDiscoveryError(message: String) {
+        val request = pendingDiscovery ?: return
+        pendingDiscovery = null
+        request.timeout?.let { mainHandler.removeCallbacks(it) }
+        request.result.error("debug_discover_failed", message, null)
+        request.gatt?.disconnect()
+        request.gatt?.close()
+    }
+
+    private fun buildGattDump(
+        gatt: BluetoothGatt,
+        deviceId: String,
+    ): String {
+        val sb = StringBuilder()
+        sb.append("deviceId: ").append(deviceId).append('\n')
+        val name = gatt.device?.name ?: "unknown"
+        sb.append("name: ").append(name).append('\n')
+        val services = gatt.services
+        for (service in services) {
+            val typeLabel =
+                if (service.type == BluetoothGattService.SERVICE_TYPE_PRIMARY) "primary" else "secondary"
+            sb
+                .append("service ")
+                .append(service.uuid)
+                .append(" (")
+                .append(typeLabel)
+                .append(')')
+                .append('\n')
+            for (ch in service.characteristics) {
+                sb.append("  char ").append(ch.uuid)
+                sb.append(" props=").append(describeGattProperties(ch.properties)).append('\n')
+            }
+        }
+        return sb.toString().trimEnd()
+    }
+
+    private fun describeGattProperties(properties: Int): String {
+        val parts = mutableListOf<String>()
+        if (properties and BluetoothGattCharacteristic.PROPERTY_READ != 0) parts.add("read")
+        if (properties and BluetoothGattCharacteristic.PROPERTY_WRITE != 0) parts.add("write")
+        if (properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0) {
+            parts.add("writeNoResponse")
+        }
+        if (properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) parts.add("notify")
+        if (properties and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0) parts.add("indicate")
+        if (properties and BluetoothGattCharacteristic.PROPERTY_SIGNED_WRITE != 0) {
+            parts.add("signedWrite")
+        }
+        if (properties and BluetoothGattCharacteristic.PROPERTY_EXTENDED_PROPS != 0) {
+            parts.add("extendedProps")
+        }
+        return if (parts.isEmpty()) "none" else parts.joinToString("|")
     }
 
     // ----------------------------
