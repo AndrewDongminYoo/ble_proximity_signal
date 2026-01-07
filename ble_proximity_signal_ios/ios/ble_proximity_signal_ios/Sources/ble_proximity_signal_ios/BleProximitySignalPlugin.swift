@@ -154,8 +154,16 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     }
   }
 
+  private func stopScanInternal(resetState: Bool) {
+    central?.stopScan()
+    if resetState {
+      targetTokenSet = []
+      debugAllowAll = false
+    }
+  }
+
   private func startScanningNow(uuid: CBUUID) {
-    stopScan()
+    stopScanInternal(resetState: false)
 
     guard let central = central, central.state == .poweredOn else { return }
 
@@ -169,9 +177,7 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
   }
 
   private func stopScan() {
-    central?.stopScan()
-    targetTokenSet = []
-    debugAllowAll = false
+    stopScanInternal(resetState: true)
   }
 
   // MARK: - CBCentralManagerDelegate

@@ -13,6 +13,7 @@ class BleProximitySignal {
     : _platform = platform ?? BleProximitySignalPlatform.instance;
 
   final BleProximitySignalPlatform _platform;
+  late final Stream<RawScanResult> _rawStream = _platform.scanResults.asBroadcastStream();
   final StreamController<ProximityEvent> _eventsController = StreamController<ProximityEvent>.broadcast();
 
   SignalProcessor? _processor;
@@ -21,7 +22,29 @@ class BleProximitySignal {
   Stream<ProximityEvent> get events => _eventsController.stream;
 
   /// Debug: raw scan stream from native (no smoothing or hysteresis).
-  Stream<RawScanResult> get rawScanResults => _platform.scanResults;
+  Stream<RawScanResult> get rawScanResults => _rawStream;
+
+  /// Debug: buffered raw scan log (latest N entries).
+  ///
+  /// Each listener gets its own buffer. Defaults to 20 entries.
+  Stream<List<RawScanResult>> rawScanLog({int maxEntries = 20}) {
+    if (maxEntries <= 0) {
+      throw ArgumentError.value(
+        maxEntries,
+        'maxEntries',
+        'must be > 0',
+      );
+    }
+
+    final buffer = <RawScanResult>[];
+    return _rawStream.map((raw) {
+      buffer.insert(0, raw);
+      if (buffer.length > maxEntries) {
+        buffer.removeRange(maxEntries, buffer.length);
+      }
+      return List<RawScanResult>.unmodifiable(buffer);
+    });
+  }
 
   /// Starts BLE advertising with the given token.
   Future<void> startBroadcast({
@@ -61,7 +84,7 @@ class BleProximitySignal {
       // best-effort stop previous native scan
     }
     _processor = SignalProcessor(
-      rawStream: _platform.scanResults,
+      rawStream: _rawStream,
       targetTokens: normalizedTokens,
       config: signalConfig,
       onEvent: _eventsController.add,

@@ -114,7 +114,7 @@ class BleProximitySignalPlugin :
                 }
 
                 "stopScan" -> {
-                    stopScanInternal()
+                    stopScanInternal(resetState = true)
                     result.success(null)
                 }
 
@@ -216,6 +216,8 @@ class BleProximitySignalPlugin :
             throw IllegalArgumentException("targetTokens must be <= 5")
         }
 
+        stopScanInternal(resetState = false) // idempotent start
+
         this.debugAllowAll = debugAllowAll
         val uuid = UUID.fromString(serviceUuidStr)
         currentServiceUuid = uuid
@@ -224,7 +226,6 @@ class BleProximitySignalPlugin :
         targetTokenSet = if (debugAllowAll) emptySet() else targetTokens.map { normalizeTokenToHex(it) }.toSet()
 
         scanner = adapter.bluetoothLeScanner ?: throw IllegalStateException("BLE scanner not available")
-        stopScanInternal() // idempotent start
 
         val parcelUuid = android.os.ParcelUuid(uuid)
 
@@ -269,7 +270,7 @@ class BleProximitySignalPlugin :
                             "targetToken" to targetToken,
                             "rssi" to result.rssi,
                             // Use epoch ms to match iOS and public contract.
-                            "timestampMs" to System.currentTimeMillis().toInt(),
+                            "timestampMs" to System.currentTimeMillis(),
                         )
                     deviceId?.let { payload["deviceId"] = it }
                     deviceName?.let { payload["deviceName"] = it }
@@ -286,15 +287,17 @@ class BleProximitySignalPlugin :
         scanner?.startScan(filters, settings, scanCallback)
     }
 
-    private fun stopScanInternal() {
-        val sc = scanner ?: return
-        val cb = scanCallback ?: return
-        try {
-            sc.stopScan(cb)
-        } catch (_: Throwable) {
-            // ignore
-        } finally {
-            scanCallback = null
+    private fun stopScanInternal(resetState: Boolean) {
+        val sc = scanner
+        val cb = scanCallback
+        if (sc != null && cb != null) {
+            try {
+                sc.stopScan(cb)
+            } catch (_: Throwable) {
+            }
+        }
+        scanCallback = null
+        if (resetState) {
             targetTokenSet = emptySet()
             debugAllowAll = false
         }
