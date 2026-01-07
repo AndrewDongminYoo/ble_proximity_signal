@@ -136,7 +136,7 @@ class RawScanResult {
       localName: localName as String?,
       manufacturerDataLen: manufacturerDataLen as int?,
       serviceDataLen: serviceDataLen as int?,
-      serviceDataUuids: serviceDataUuids as List<String>?
+      serviceDataUuids: serviceDataUuids as List<String>?,
     );
   }
 

@@ -3,10 +3,10 @@ publish_to: none
 environment:
   sdk: ^3.9.0
 workspace:
+  - ble_proximity_signal_platform_interface
   - ble_proximity_signal
   - ble_proximity_signal_android
   - ble_proximity_signal_ios
-  - ble_proximity_signal_platform_interface
 dev_dependencies:
   melos: ^7.3.0
 
@@ -14,10 +14,10 @@ melos:
   name: ble_proximity_signal
 
   packages:
+    - ble_proximity_signal_platform_interface
     - ble_proximity_signal
     - ble_proximity_signal_android
     - ble_proximity_signal_ios
-    - ble_proximity_signal_platform_interface
 
   scripts:
     generate:

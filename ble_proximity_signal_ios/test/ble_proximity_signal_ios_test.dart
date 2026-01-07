@@ -7,7 +7,6 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('BleProximitySignalIOS', () {
-    const kPlatformName = 'iOS';
     late BleProximitySignalIOS bleProximitySignal;
     late List<MethodCall> log;
 
@@ -15,18 +14,23 @@ void main() {
       bleProximitySignal = BleProximitySignalIOS();
 
       log = <MethodCall>[];
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(bleProximitySignal.methodChannel, (
-            methodCall,
-          ) async {
-            log.add(methodCall);
-            switch (methodCall.method) {
-              case 'getPlatformName':
-                return kPlatformName;
-              default:
-                return null;
-            }
-          });
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        bleProximitySignal.methodChannel,
+        (
+          methodCall,
+        ) async {
+          log.add(methodCall);
+          return null;
+        },
+      );
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        bleProximitySignal.methodChannel,
+        null,
+      );
+      log.clear();
     });
 
     test('can be registered', () {
@@ -34,13 +38,57 @@ void main() {
       expect(BleProximitySignalPlatform.instance, isA<BleProximitySignalIOS>());
     });
 
-    test('getPlatformName returns correct name', () async {
-      final name = await bleProximitySignal.getPlatformName();
+    test('startBroadcast sends expected arguments', () async {
+      const config = BroadcastConfig(serviceUuid: '00000000-0000-0000-0000-000000000000', txPower: 2);
+      await bleProximitySignal.startBroadcast(token: 'a1b2', config: config);
       expect(
         log,
-        <Matcher>[isMethodCall('getPlatformName', arguments: null)],
+        <Matcher>[
+          isMethodCall(
+            'startBroadcast',
+            arguments: <String, Object?>{
+              'token': 'a1b2',
+              'serviceUuid': config.serviceUuid,
+              'txPower': config.txPower,
+            },
+          ),
+        ],
       );
-      expect(name, equals(kPlatformName));
+    });
+
+    test('startScan sends expected arguments', () async {
+      const config = ScanConfig(
+        serviceUuid: '11111111-1111-1111-1111-111111111111',
+      );
+      await bleProximitySignal.startScan(
+        targetTokens: <String>['aa'],
+        config: config,
+      );
+      expect(
+        log,
+        <Matcher>[
+          isMethodCall(
+            'startScan',
+            arguments: <String, Object?>{
+              'targetTokens': <String>['aa'],
+              'serviceUuid': config.serviceUuid,
+              'debugAllowAll': config.debugAllowAll,
+            },
+          ),
+        ],
+      );
+    });
+
+    test('stopBroadcast and stopScan invoke methods', () async {
+      await bleProximitySignal.stopBroadcast();
+      await bleProximitySignal.stopScan();
+      expect(
+        log,
+        <Matcher>[
+          isMethodCall('stopBroadcast', arguments: null),
+          isMethodCall('stopScan', arguments: null),
+        ],
+      );
     });
   });
 }
