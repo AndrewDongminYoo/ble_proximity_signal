@@ -49,5 +49,7 @@ extension Data {
   }
 }
 
-let _ = Beacon()
-RunLoop.main.run()
+public func startBeaconRunLoop() {
+  _ = Beacon()
+  RunLoop.main.run()
+}
