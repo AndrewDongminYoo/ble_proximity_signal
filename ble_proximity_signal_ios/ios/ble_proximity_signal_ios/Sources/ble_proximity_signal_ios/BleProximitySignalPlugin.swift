@@ -413,9 +413,13 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     lines.append("deviceId: \(context.deviceId)")
     let name = context.peripheral.name ?? "unknown"
     lines.append("name: \(name)")
-    for service in context.services {
+
+    let servicesSorted = context.services.sorted { $0.uuid.uuidString < $1.uuid.uuidString }
+    for service in servicesSorted {
       lines.append("service \(service.uuid.uuidString)")
-      let characteristics = context.characteristics[service.uuid] ?? []
+      let characteristics = (context.characteristics[service.uuid] ?? [])
+        .sorted { $0.uuid.uuidString < $1.uuid.uuidString }
+
       for ch in characteristics {
         let props = describeProperties(ch.properties)
         lines.append("  char \(ch.uuid.uuidString) props=\(props)")

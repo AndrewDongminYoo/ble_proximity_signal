@@ -47,6 +47,9 @@ class _HomePageState extends State<HomePage> {
 
   ProximityEvent? _lastEvent;
   final Map<String, RawScanResult> _deviceCache = <String, RawScanResult>{};
+  final Map<String, String> _lastDiscoveryDumpByDeviceId = {};
+  final Map<String, int> _lastDiscoveryLoggedAtMsByDeviceId = {};
+  static const int _discoveryLogDedupeWindowMs = 1500;
   List<RawScanResult> _visibleDevices = <RawScanResult>[];
   final Set<String> _connectingDeviceIds = <String>{};
   bool _scanning = false;
@@ -218,7 +221,20 @@ class _HomePageState extends State<HomePage> {
     try {
       final dump = await _ble.debugDiscoverServices(deviceId: deviceId);
       if (!mounted) return;
-      log(dump);
+
+      // ✅ Dedupe logging
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final prevDump = _lastDiscoveryDumpByDeviceId[deviceId];
+      final prevLoggedAt = _lastDiscoveryLoggedAtMsByDeviceId[deviceId] ?? 0;
+
+      final shouldLog = prevDump != dump || (nowMs - prevLoggedAt) > _discoveryLogDedupeWindowMs;
+
+      if (shouldLog) {
+        log(dump);
+        _lastDiscoveryDumpByDeviceId[deviceId] = dump;
+        _lastDiscoveryLoggedAtMsByDeviceId[deviceId] = nowMs;
+      }
+
       await showDialog<void>(
         context: context,
         builder: (context) {
@@ -265,7 +281,7 @@ class _HomePageState extends State<HomePage> {
           }
         });
         if (mounted) {
-          unawaited(SystemSound.play(SystemSoundType.click));
+          unawaited(SystemSound.play(SystemSoundType.tick));
           setState(() => _beepOn = true);
         }
       });
@@ -728,6 +744,7 @@ class _DeviceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final canTap = index < 3 && (data.deviceId?.isNotEmpty ?? false);
     final isConnecting = data.deviceId != null && connectingDeviceIds.contains(data.deviceId);
+    final othersConnecting = connectingDeviceIds.isNotEmpty && !connectingDeviceIds.contains(data.deviceId);
     final label = data.localName ?? data.deviceName ?? data.deviceId ?? data.targetToken;
     final ageMs = DateTime.now().millisecondsSinceEpoch - data.timestampMs;
     final ageLabel = '${(ageMs / 1000).toStringAsFixed(1)}s';
@@ -755,7 +772,7 @@ class _DeviceRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: canTap ? () => onTap(data) : null,
+        onTap: canTap && !isConnecting && !othersConnecting ? () => onTap(data) : null,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -780,20 +797,22 @@ class _DeviceRow extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (canTap)
-                    isConnecting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                            'Tap to probe',
-                            style: TextStyle(
-                              color: headerColor.withValues(alpha: 0.8),
-                              fontSize: 12,
-                            ),
-                          ),
+                  if (canTap && !isConnecting && !othersConnecting)
+                    Text(
+                      'Tap to probe',
+                      style: TextStyle(
+                        color: headerColor.withValues(alpha: 0.8),
+                        fontSize: 12,
+                      ),
+                    )
+                  else if (isConnecting)
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    const SizedBox.shrink(),
                 ],
               ),
               const SizedBox(height: 6),
