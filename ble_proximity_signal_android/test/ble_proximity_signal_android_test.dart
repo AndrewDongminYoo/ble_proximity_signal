@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ble_proximity_signal_android/ble_proximity_signal_android.dart';
 import 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_platform_interface.dart';
 import 'package:flutter/services.dart';
@@ -9,12 +11,26 @@ void main() {
   group('BleProximitySignalAndroid', () {
     late BleProximitySignalAndroid bleProximitySignal;
     late List<MethodCall> log;
+    late List<MethodCall> eventLog;
+    late TestDefaultBinaryMessenger messenger;
+    const eventChannelName = 'ble_proximity_signal/events';
+    const methodCodec = StandardMethodCodec();
+
+    void sendEvent(Object? event) {
+      unawaited(messenger.handlePlatformMessage(
+        eventChannelName,
+        methodCodec.encodeSuccessEnvelope(event),
+        (ByteData? _) {},
+      ));
+    }
 
     setUp(() async {
       bleProximitySignal = BleProximitySignalAndroid();
+      messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
       log = <MethodCall>[];
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      eventLog = <MethodCall>[];
+      messenger.setMockMethodCallHandler(
         bleProximitySignal.methodChannel,
         (
           methodCall,
@@ -23,14 +39,24 @@ void main() {
           return null;
         },
       );
+      messenger.setMockMessageHandler(
+        eventChannelName,
+        (ByteData? message) async {
+          final methodCall = methodCodec.decodeMethodCall(message);
+          eventLog.add(methodCall);
+          return methodCodec.encodeSuccessEnvelope(null);
+        },
+      );
     });
 
     tearDown(() {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      messenger.setMockMethodCallHandler(
         bleProximitySignal.methodChannel,
         null,
       );
+      messenger.setMockMessageHandler(eventChannelName, null);
       log.clear();
+      eventLog.clear();
     });
 
     test('can be registered', () {
@@ -93,6 +119,71 @@ void main() {
           isMethodCall('stopScan', arguments: null),
         ],
       );
+    });
+
+    test('debugDiscoverServices returns method result', () async {
+      messenger.setMockMethodCallHandler(
+        bleProximitySignal.methodChannel,
+        (methodCall) async {
+          log.add(methodCall);
+          if (methodCall.method == 'debugDiscoverServices') {
+            return 'ok';
+          }
+          return null;
+        },
+      );
+
+      final result = await bleProximitySignal.debugDiscoverServices(
+        deviceId: 'device-1',
+        timeoutMs: 9000,
+      );
+
+      expect(result, 'ok');
+      expect(
+        log,
+        contains(
+          isMethodCall(
+            'debugDiscoverServices',
+            arguments: <String, Object?>{
+              'deviceId': 'device-1',
+              'timeoutMs': 9000,
+            },
+          ),
+        ),
+      );
+    });
+
+    test('scanResults maps events to RawScanResult', () async {
+      final expectation = expectLater(
+        bleProximitySignal.scanResults,
+        emits(
+          isA<RawScanResult>()
+              .having((result) => result.targetToken, 'targetToken', 'aa')
+              .having((result) => result.rssi, 'rssi', -42)
+              .having((result) => result.timestampMs, 'timestampMs', 123),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      sendEvent(<Object?, Object?>{
+        'targetToken': 'aa',
+        'rssi': -42,
+        'timestampMs': 123,
+      });
+
+      await expectation;
+      expect(eventLog.first.method, 'listen');
+    });
+
+    test('scanResults throws when event is not a map', () async {
+      final expectation = expectLater(
+        bleProximitySignal.scanResults,
+        emitsError(isA<ArgumentError>()),
+      );
+
+      await Future<void>.delayed(Duration.zero);
+      sendEvent('bad');
+      await expectation;
     });
   });
 }

@@ -90,5 +90,99 @@ void main() {
         ],
       );
     });
+
+    test('scanResults maps event channel data to RawScanResult', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockStreamHandler(
+        const EventChannel('ble_proximity_signal/events'),
+        MockStreamHandler.inline(
+          onListen: (arguments, events) {
+            events.success(<Object?, Object?>{
+              'targetToken': 'a1b2',
+              'rssi': -44,
+              'timestampMs': 1234,
+            });
+            events.endOfStream();
+          },
+        ),
+      );
+
+      await expectLater(
+        bleProximitySignal.scanResults,
+        emitsInOrder(<Matcher>[
+          isA<RawScanResult>()
+              .having((result) => result.targetToken, 'targetToken', 'a1b2')
+              .having((result) => result.rssi, 'rssi', -44)
+              .having((result) => result.timestampMs, 'timestampMs', 1234),
+          emitsDone,
+        ]),
+      );
+    });
+
+    test('scanResults throws when event is not a map', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockStreamHandler(
+        const EventChannel('ble_proximity_signal/events'),
+        MockStreamHandler.inline(
+          onListen: (arguments, events) {
+            events.success('not-a-map');
+            events.endOfStream();
+          },
+        ),
+      );
+
+      await expectLater(
+        bleProximitySignal.scanResults.first,
+        throwsArgumentError,
+      );
+    });
+
+    test('debugDiscoverServices returns empty string when platform returns null', () async {
+      final result = await bleProximitySignal.debugDiscoverServices(deviceId: 'device-1');
+
+      expect(result, isEmpty);
+      expect(
+        log,
+        <Matcher>[
+          isMethodCall(
+            'debugDiscoverServices',
+            arguments: <String, Object?>{
+              'deviceId': 'device-1',
+              'timeoutMs': 8000,
+            },
+          ),
+        ],
+      );
+    });
+
+    test('debugDiscoverServices returns platform value when present', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        bleProximitySignal.methodChannel,
+        (methodCall) async {
+          log.add(methodCall);
+          if (methodCall.method == 'debugDiscoverServices') {
+            return 'ok';
+          }
+          return null;
+        },
+      );
+
+      final result = await bleProximitySignal.debugDiscoverServices(
+        deviceId: 'device-2',
+        timeoutMs: 2500,
+      );
+
+      expect(result, 'ok');
+      expect(
+        log,
+        <Matcher>[
+          isMethodCall(
+            'debugDiscoverServices',
+            arguments: <String, Object?>{
+              'deviceId': 'device-2',
+              'timeoutMs': 2500,
+            },
+          ),
+        ],
+      );
+    });
   });
 }
