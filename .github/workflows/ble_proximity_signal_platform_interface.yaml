@@ -23,4 +23,5 @@ jobs:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@v1
     with:
       flutter_version: 3.35.0
+      format_line_length: 120
       working_directory: ble_proximity_signal_platform_interface
