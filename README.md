@@ -26,10 +26,10 @@ It does **not** claim background reliability or distance-in-meters.
 
 ## Packages
 
-- `ble_proximity_signal/`: public Dart API + signal processing
-- `ble_proximity_signal_platform_interface/`: shared platform contracts/models
-- `ble_proximity_signal_android/`: Android implementation
-- `ble_proximity_signal_ios/`: iOS implementation
+- [`ble_proximity_signal`](ble_proximity_signal/README.md): “Public Dart API”
+- [`ble_proximity_signal_platform_interface`](ble_proximity_signal_platform_interface/README.md): “Contracts / models”
+- [`ble_proximity_signal_android`](ble_proximity_signal_android/README.md): “Android implementation”
+- [`ble_proximity_signal_ios`](ble_proximity_signal_ios/README.md): “iOS implementation”
 
 ## Quickstart
 
@@ -105,6 +105,16 @@ If the token cannot be parsed, the Dart wrapper throws `FormatException`.
 - Foreground-only by design (v0.1.0).
 - Device identifiers in scan results can be **randomized/unstable** on some Android versions/devices.
 - Integration tests require a physical device or emulator with BLE support.
+
+### Permissions (practical)
+
+Permissions differ by OS version and vendor. Common requirements:
+
+- Android 12+:
+  - `BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`, `BLUETOOTH_ADVERTISE`
+  - Runtime permission prompts are required on modern Android.
+- iOS:
+  - `NSBluetoothAlwaysUsageDescription` in `Info.plist`
 
 > Permissions and platform policy vary by OS version/device. If scanning/broadcasting fails, check Bluetooth state, permissions, and device capabilities first.
 
