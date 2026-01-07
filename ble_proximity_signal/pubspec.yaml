@@ -4,15 +4,12 @@ version: 0.1.0+1
 homepage: https://github.com/AndrewDongminYoo/ble_proximity_signal
 repository: https://github.com/AndrewDongminYoo/ble_proximity_signal
 issue_tracker: https://github.com/AndrewDongminYoo/ble_proximity_signal/issues
-publish_to: none # 임시
 topics:
   - bluetooth
   - ble
   - proximity
   - rssi
   - beacon
-  - indoor-positioning
-  - flutter-plugin
 
 environment:
   sdk: ^3.9.0
@@ -28,12 +25,9 @@ flutter:
         default_package: ble_proximity_signal_ios
 
 dependencies:
-  ble_proximity_signal_android:
-    path: ../ble_proximity_signal_android
-  ble_proximity_signal_ios:
-    path: ../ble_proximity_signal_ios
-  ble_proximity_signal_platform_interface:
-    path: ../ble_proximity_signal_platform_interface
+  ble_proximity_signal_android: ^0.1.0+1
+  ble_proximity_signal_ios: ^0.1.0+1
+  ble_proximity_signal_platform_interface: ^0.1.0+1
   flutter:
     sdk: flutter
 

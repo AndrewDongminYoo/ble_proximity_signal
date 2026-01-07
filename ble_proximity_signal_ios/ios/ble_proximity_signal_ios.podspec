@@ -3,7 +3,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'ble_proximity_signal_ios'
-  s.version          = '0.0.1'
+  s.version          = '0.1.0'
   s.summary          = 'An iOS implementation of the ble_proximity_signal plugin.'
   s.description      = <<-DESC
   An iOS implementation of the ble_proximity_signal plugin.

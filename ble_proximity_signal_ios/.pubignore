@@ -1,0 +1,28 @@
+# Tooling / caches
+.dart_tool/
+.pub/
+.pub-cache/
+build/
+coverage/
+doc/
+.metadata
+.trunk/
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Logs
+*.log
+
+# CocoaPods / Xcode build artifacts
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+DerivedData/
+
+# Debug tool (not for pub.dev)
+mac_beacon/

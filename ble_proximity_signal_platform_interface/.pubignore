@@ -1,0 +1,18 @@
+# Tooling / caches
+.dart_tool/
+.pub/
+.pub-cache/
+build/
+coverage/
+doc/
+.metadata
+.trunk/
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Logs
+*.log
