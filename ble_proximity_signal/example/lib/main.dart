@@ -43,10 +43,12 @@ class _HomePageState extends State<HomePage> {
   StreamSubscription<RawScanResult>? _rawSubscription;
   Timer? _beepTimer;
   Timer? _beepFlashTimer;
+  Timer? _deviceRefreshTimer;
 
   ProximityEvent? _lastEvent;
-  final List<RawScanResult> _rawLog = <RawScanResult>[];
-  static const int _rawLogMax = 12;
+  final Map<String, RawScanResult> _deviceCache = <String, RawScanResult>{};
+  List<RawScanResult> _visibleDevices = <RawScanResult>[];
+  final Set<String> _connectingDeviceIds = <String>{};
   bool _scanning = false;
   bool _broadcasting = false;
   bool _beepOn = false;
@@ -62,6 +64,7 @@ class _HomePageState extends State<HomePage> {
     unawaited(_rawSubscription?.cancel());
     _beepTimer?.cancel();
     _beepFlashTimer?.cancel();
+    _deviceRefreshTimer?.cancel();
     _broadcastController.dispose();
     _targetController.dispose();
     super.dispose();
@@ -118,17 +121,18 @@ class _HomePageState extends State<HomePage> {
         }
       },
     );
-
-    _ble.rawScanLog(maxEntries: 50).listen((buffer) {
-      if (buffer.isEmpty) return;
-      log(buffer.first.toString());
-    });
+    _deviceCache.clear();
+    _visibleDevices = <RawScanResult>[];
+    _deviceRefreshTimer?.cancel();
 
     try {
       await _ble.startScan(
         targetTokens: targets,
         config: ScanConfig(debugAllowAll: _debugAllowAll),
       );
+      if (_debugAllowAll) {
+        _startDeviceRefreshTimer();
+      }
       setState(() => _scanning = true);
     } on Object catch (error) {
       await _subscription?.cancel();
@@ -151,6 +155,7 @@ class _HomePageState extends State<HomePage> {
       _rawSubscription = null;
       _beepTimer?.cancel();
       _beepFlashTimer?.cancel();
+      _deviceRefreshTimer?.cancel();
       if (mounted) {
         setState(() {
           _scanning = false;
@@ -159,7 +164,9 @@ class _HomePageState extends State<HomePage> {
           _beepIntervalMs = 0;
           _level = ProximityLevel.far;
           _lastEvent = null;
-          _rawLog.clear();
+          _deviceCache.clear();
+          _visibleDevices = <RawScanResult>[];
+          _connectingDeviceIds.clear();
         });
       }
     }
@@ -169,13 +176,72 @@ class _HomePageState extends State<HomePage> {
     if (!_debugAllowAll) {
       return;
     }
-    if (mounted) {
-      setState(() {
-        _rawLog.insert(0, raw);
-        if (_rawLog.length > _rawLogMax) {
-          _rawLog.removeRange(_rawLogMax, _rawLog.length);
-        }
+    final key = raw.deviceId ?? raw.targetToken;
+    if (key.isEmpty) {
+      return;
+    }
+    _deviceCache[key] = raw;
+  }
+
+  void _startDeviceRefreshTimer() {
+    _deviceRefreshTimer?.cancel();
+    _deviceRefreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _refreshVisibleDevices();
+    });
+    _refreshVisibleDevices();
+  }
+
+  void _refreshVisibleDevices() {
+    if (!mounted) return;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    const visibleWindowMs = 2000;
+    _deviceCache.removeWhere((_, entry) => nowMs - entry.timestampMs > visibleWindowMs);
+    final next = _deviceCache.values.toList()
+      ..sort((a, b) {
+        final byRssi = b.rssi.compareTo(a.rssi);
+        if (byRssi != 0) return byRssi;
+        return b.timestampMs.compareTo(a.timestampMs);
       });
+    setState(() => _visibleDevices = next);
+  }
+
+  Future<void> _discoverServices(RawScanResult entry) async {
+    final deviceId = entry.deviceId;
+    if (deviceId == null || deviceId.isEmpty) {
+      _showError('No deviceId available for this device.');
+      return;
+    }
+    if (_connectingDeviceIds.contains(deviceId)) {
+      return;
+    }
+    setState(() => _connectingDeviceIds.add(deviceId));
+    try {
+      final dump = await _ble.debugDiscoverServices(deviceId: deviceId);
+      if (!mounted) return;
+      log(dump);
+      await showDialog<void>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Discover Services'),
+            content: SingleChildScrollView(
+              child: SelectableText(dump),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+    } on Object catch (error) {
+      _showError('Discover services failed: $error');
+    } finally {
+      if (mounted) {
+        setState(() => _connectingDeviceIds.remove(deviceId));
+      }
     }
   }
 
@@ -295,7 +361,11 @@ class _HomePageState extends State<HomePage> {
               ),
               if (_debugAllowAll) ...[
                 const SizedBox(height: 12),
-                _RawLogCard(entries: _rawLog),
+                _DeviceListCard(
+                  entries: _visibleDevices,
+                  connectingDeviceIds: _connectingDeviceIds,
+                  onTap: _discoverServices,
+                ),
               ],
               const SizedBox(height: 16),
               _TokenCard(
@@ -597,10 +667,16 @@ class _DebugCard extends StatelessWidget {
   }
 }
 
-class _RawLogCard extends StatelessWidget {
-  const _RawLogCard({required this.entries});
+class _DeviceListCard extends StatelessWidget {
+  const _DeviceListCard({
+    required this.entries,
+    required this.connectingDeviceIds,
+    required this.onTap,
+  });
 
   final List<RawScanResult> entries;
+  final Set<String> connectingDeviceIds;
+  final ValueChanged<RawScanResult> onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -615,7 +691,7 @@ class _RawLogCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Raw Scan Log',
+            'Visible Devices (refresh 1s)',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.9),
               fontWeight: FontWeight.w600,
@@ -624,37 +700,130 @@ class _RawLogCard extends StatelessWidget {
           const SizedBox(height: 10),
           if (entries.isEmpty)
             Text(
-              'No raw scans yet.',
+              'No devices yet.',
               style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
             )
           else
-            for (final entry in entries)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text(
-                  _formatRawEntry(entry),
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.75),
-                    fontSize: 12,
-                  ),
-                ),
+            for (var i = 0; i < entries.length; i++)
+              _DeviceRow(
+                index: i,
+                data: entries[i],
+                connectingDeviceIds: connectingDeviceIds,
+                onTap: onTap,
               ),
         ],
       ),
     );
   }
+}
 
-  String _formatRawEntry(RawScanResult entry) {
-    final label = entry.localName ?? entry.deviceName ?? entry.deviceId ?? entry.targetToken;
-    final mfg = entry.manufacturerDataLen == null ? '' : ' • mfg:${entry.manufacturerDataLen}';
-    final svcLen = entry.serviceDataLen == null ? '' : ' • svcLen:${entry.serviceDataLen}';
-    final svcDataUuids = (entry.serviceDataUuids == null || entry.serviceDataUuids!.isEmpty)
-        ? ''
-        : ' • svcData:${entry.serviceDataUuids!.join(",")}';
-    final svcUuids = (entry.serviceUuids == null || entry.serviceUuids!.isEmpty)
-        ? ''
-        : ' • svc:${entry.serviceUuids!.join(",")}';
-    return '${entry.rssi}dBm • $label$mfg$svcLen$svcDataUuids$svcUuids';
+class _DeviceRow extends StatelessWidget {
+  const _DeviceRow({
+    required this.index,
+    required this.data,
+    required this.connectingDeviceIds,
+    required this.onTap,
+  });
+
+  final int index;
+  final RawScanResult data;
+  final Set<String> connectingDeviceIds;
+  final ValueChanged<RawScanResult> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final canTap = index < 3 && (data.deviceId?.isNotEmpty ?? false);
+    final isConnecting = data.deviceId != null && connectingDeviceIds.contains(data.deviceId);
+    final label = data.localName ?? data.deviceName ?? data.deviceId ?? data.targetToken;
+    final ageMs = DateTime.now().millisecondsSinceEpoch - data.timestampMs;
+    final ageLabel = '${(ageMs / 1000).toStringAsFixed(1)}s';
+    final headerColor = index < 3 ? const Color(0xFFFFC857) : Colors.white;
+
+    final localHexLine = data.localNameHex == null ? null : 'localHex: ${data.localNameHex}';
+    final serviceDataHexLine = _formatServiceDataHex(data.serviceDataHex);
+    final mfgHexLine = data.manufacturerDataHex == null ? null : 'mfgHex: ${data.manufacturerDataHex}';
+    final serviceDataUuidLine = (data.serviceDataUuids == null || data.serviceDataUuids!.isEmpty)
+        ? null
+        : 'svcDataUuids: ${data.serviceDataUuids!.join(",")}';
+    final serviceUuidLine =
+        (data.serviceUuids == null || data.serviceUuids!.isEmpty) ? null : 'svcUuids: ${data.serviceUuids!.join(",")}';
+
+    final lines = <String>[
+      if (data.deviceId != null) 'deviceId: ${data.deviceId}',
+      ?localHexLine,
+      ?serviceDataHexLine,
+      ?serviceDataUuidLine,
+      ?serviceUuidLine,
+      ?mfgHexLine,
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: canTap ? () => onTap(data) : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: canTap ? 0.2 : 0.08),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '$label • ${data.rssi}dBm • $ageLabel',
+                      style: TextStyle(
+                        color: headerColor.withValues(alpha: 0.9),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (canTap)
+                    isConnecting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            'Tap to probe',
+                            style: TextStyle(
+                              color: headerColor.withValues(alpha: 0.8),
+                              fontSize: 12,
+                            ),
+                          ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              for (final line in lines)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text(
+                    line,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.75),
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String? _formatServiceDataHex(Map<String, String>? data) {
+    if (data == null || data.isEmpty) return null;
+    final entries = data.entries.map((entry) => '${entry.key}:${entry.value}').join(', ');
+    return 'svcDataHex: $entries';
   }
 }
 
