@@ -7,6 +7,16 @@ workspace:
   - ble_proximity_signal
   - ble_proximity_signal_android
   - ble_proximity_signal_ios
+homepage: https://github.com/AndrewDongminYoo/ble_proximity_signal
+repository: https://github.com/AndrewDongminYoo/ble_proximity_signal
+issue_tracker: https://github.com/AndrewDongminYoo/ble_proximity_signal/issues
+topics:
+  - bluetooth
+  - ble
+  - proximity
+  - rssi
+  - beacon
+
 dev_dependencies:
   melos: ^7.3.0
 
