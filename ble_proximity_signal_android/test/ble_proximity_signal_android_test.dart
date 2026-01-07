@@ -17,11 +17,13 @@ void main() {
     const methodCodec = StandardMethodCodec();
 
     void sendEvent(Object? event) {
-      unawaited(messenger.handlePlatformMessage(
-        eventChannelName,
-        methodCodec.encodeSuccessEnvelope(event),
-        (ByteData? _) {},
-      ));
+      unawaited(
+        messenger.handlePlatformMessage(
+          eventChannelName,
+          methodCodec.encodeSuccessEnvelope(event),
+          (ByteData? _) {},
+        ),
+      );
     }
 
     setUp(() async {

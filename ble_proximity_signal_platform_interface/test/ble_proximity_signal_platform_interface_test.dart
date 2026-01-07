@@ -151,12 +151,24 @@ void main() {
         <Object?, Object?>{...base, 'manufacturerDataHex': 1},
         <Object?, Object?>{...base, 'serviceDataLen': 'bad'},
         <Object?, Object?>{...base, 'serviceDataUuids': 'bad'},
-        <Object?, Object?>{...base, 'serviceDataUuids': <Object?>['ok', 1]},
+        <Object?, Object?>{
+          ...base,
+          'serviceDataUuids': <Object?>['ok', 1],
+        },
         <Object?, Object?>{...base, 'serviceDataHex': 'bad'},
-        <Object?, Object?>{...base, 'serviceDataHex': <Object?, Object?>{1: 'ok'}},
-        <Object?, Object?>{...base, 'serviceDataHex': <Object?, Object?>{'ok': 1}},
+        <Object?, Object?>{
+          ...base,
+          'serviceDataHex': <Object?, Object?>{1: 'ok'},
+        },
+        <Object?, Object?>{
+          ...base,
+          'serviceDataHex': <Object?, Object?>{'ok': 1},
+        },
         <Object?, Object?>{...base, 'serviceUuids': 'bad'},
-        <Object?, Object?>{...base, 'serviceUuids': <Object?>['ok', 1]},
+        <Object?, Object?>{
+          ...base,
+          'serviceUuids': <Object?>['ok', 1],
+        },
       ];
 
       for (final map in cases) {
