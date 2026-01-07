@@ -79,6 +79,10 @@ class BleProximitySignalPlugin :
     ) {
         stopScanInternal()
         stopBroadcastInternal()
+        pendingDiscovery?.gatt?.disconnect()
+        pendingDiscovery?.gatt?.close()
+        pendingDiscovery = null
+        discoveredDevices.clear()
 
         methodChannel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)
@@ -456,10 +460,16 @@ class BleProximitySignalPlugin :
             }
 
         val gatt =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                device.connectGatt(applicationContext, false, callback, BluetoothDevice.TRANSPORT_LE)
-            } else {
-                device.connectGatt(applicationContext, false, callback)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    device.connectGatt(applicationContext, false, callback, BluetoothDevice.TRANSPORT_LE)
+                } else {
+                    device.connectGatt(applicationContext, false, callback)
+                }
+            } catch (e: SecurityException) {
+                pendingDiscovery = null
+                result.error("permission_denied", "Missing BLUETOOTH_CONNECT permission", null)
+                return
             }
         if (gatt == null) {
             pendingDiscovery = null
