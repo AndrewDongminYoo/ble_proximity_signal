@@ -46,6 +46,14 @@ class FakeBleProximitySignalPlatform extends BleProximitySignalPlatform {
 
   @override
   Future<void> stopScan() async {}
+
+  @override
+  Future<String> debugDiscoverServices({
+    required String deviceId,
+    int timeoutMs = 8000,
+  }) async {
+    return 'ok';
+  }
 }
 
 void main() {

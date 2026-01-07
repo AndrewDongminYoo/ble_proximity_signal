@@ -255,6 +255,12 @@ abstract class BleProximitySignalPlatform extends PlatformInterface {
   /// Stops scanning.
   Future<void> stopScan();
 
+  /// Debug: connect to a device and dump discovered services/characteristics.
+  Future<String> debugDiscoverServices({
+    required String deviceId,
+    int timeoutMs = 8000,
+  });
+
   /// Raw scan result stream from native.
   ///
   /// Dart-side will do smoothing/threshold/intensity mapping.

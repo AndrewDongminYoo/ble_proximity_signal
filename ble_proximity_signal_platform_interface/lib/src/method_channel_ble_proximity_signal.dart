@@ -51,6 +51,21 @@ class MethodChannelBleProximitySignal extends BleProximitySignalPlatform {
   Future<void> stopScan() {
     return methodChannel.invokeMethod<void>('stopScan');
   }
+
+  @override
+  Future<String> debugDiscoverServices({
+    required String deviceId,
+    int timeoutMs = 8000,
+  }) async {
+    final result = await methodChannel.invokeMethod<String>(
+      'debugDiscoverServices',
+      <String, Object?>{
+        'deviceId': deviceId,
+        'timeoutMs': timeoutMs,
+      },
+    );
+    return result ?? '';
+  }
 }
 
 Map<Object?, Object?> _castEvent(Object? event) {

@@ -113,6 +113,17 @@ class BleProximitySignal {
     }
   }
 
+  /// Debug: connect to a device and dump discovered services/characteristics.
+  Future<String> debugDiscoverServices({
+    required String deviceId,
+    int timeoutMs = 8000,
+  }) {
+    return _platform.debugDiscoverServices(
+      deviceId: deviceId,
+      timeoutMs: timeoutMs,
+    );
+  }
+
   /// Clean Up Internal Resources
   Future<void> dispose() async {
     await stopScan();
