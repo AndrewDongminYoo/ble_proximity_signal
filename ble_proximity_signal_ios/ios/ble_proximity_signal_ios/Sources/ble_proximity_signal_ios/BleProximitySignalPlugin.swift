@@ -178,7 +178,9 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
 
   public func centralManagerDidUpdateState(_ central: CBCentralManager) {
     // If scanning was requested before BT became available, resume here
-    if central.state == .poweredOn, let uuid = self.serviceUUID, !self.targetTokenSet.isEmpty {
+    if central.state == .poweredOn,
+       let uuid = self.serviceUUID,
+       (debugAllowAll || !self.targetTokenSet.isEmpty) {
       startScanningNow(uuid: uuid)
     }
   }

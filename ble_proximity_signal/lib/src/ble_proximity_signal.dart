@@ -20,6 +20,9 @@ class BleProximitySignal {
   /// Smoothed proximity stream.
   Stream<ProximityEvent> get events => _eventsController.stream;
 
+  /// Debug: raw scan stream from native (no smoothing or hysteresis).
+  Stream<RawScanResult> get rawScanResults => _platform.scanResults;
+
   /// Starts BLE advertising with the given token.
   Future<void> startBroadcast({
     required String token,

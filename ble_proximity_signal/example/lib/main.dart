@@ -39,10 +39,13 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _targetController = TextEditingController(text: 'a1b2c3d4');
 
   StreamSubscription<ProximityEvent>? _subscription;
+  StreamSubscription<RawScanResult>? _rawSubscription;
   Timer? _beepTimer;
   Timer? _beepFlashTimer;
 
   ProximityEvent? _lastEvent;
+  final List<RawScanResult> _rawLog = <RawScanResult>[];
+  static const int _rawLogMax = 12;
   bool _scanning = false;
   bool _broadcasting = false;
   bool _beepOn = false;
@@ -55,6 +58,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     unawaited(_ble.dispose());
     unawaited(_subscription?.cancel());
+    unawaited(_rawSubscription?.cancel());
     _beepTimer?.cancel();
     _beepFlashTimer?.cancel();
     _broadcastController.dispose();
@@ -104,6 +108,15 @@ class _HomePageState extends State<HomePage> {
         _showError('Scan error: $error');
       },
     );
+    await _rawSubscription?.cancel();
+    _rawSubscription = _ble.rawScanResults.listen(
+      _handleRaw,
+      onError: (Object? error) {
+        if (_debugAllowAll) {
+          _showError('Raw scan error: $error');
+        }
+      },
+    );
 
     try {
       await _ble.startScan(
@@ -114,6 +127,8 @@ class _HomePageState extends State<HomePage> {
     } on Object catch (error) {
       await _subscription?.cancel();
       _subscription = null;
+      await _rawSubscription?.cancel();
+      _rawSubscription = null;
       _showError('Start scan failed: $error');
     }
   }
@@ -126,6 +141,8 @@ class _HomePageState extends State<HomePage> {
     } finally {
       await _subscription?.cancel();
       _subscription = null;
+      await _rawSubscription?.cancel();
+      _rawSubscription = null;
       _beepTimer?.cancel();
       _beepFlashTimer?.cancel();
       if (mounted) {
@@ -136,8 +153,23 @@ class _HomePageState extends State<HomePage> {
           _beepIntervalMs = 0;
           _level = ProximityLevel.far;
           _lastEvent = null;
+          _rawLog.clear();
         });
       }
+    }
+  }
+
+  void _handleRaw(RawScanResult raw) {
+    if (!_debugAllowAll) {
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _rawLog.insert(0, raw);
+        if (_rawLog.length > _rawLogMax) {
+          _rawLog.removeRange(_rawLogMax, _rawLog.length);
+        }
+      });
     }
   }
 
@@ -253,8 +285,12 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 24),
               _DebugCard(
                 enabled: _debugAllowAll,
-                onChanged: (value) => setState(() => _debugAllowAll = value),
+                onChanged: _scanning ? null : (value) => setState(() => _debugAllowAll = value),
               ),
+              if (_debugAllowAll) ...[
+                const SizedBox(height: 12),
+                _RawLogCard(entries: _rawLog),
+              ],
               const SizedBox(height: 16),
               _TokenCard(
                 title: 'Target Token',
@@ -526,7 +562,7 @@ class _DebugCard extends StatelessWidget {
   });
 
   final bool enabled;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -552,6 +588,60 @@ class _DebugCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _RawLogCard extends StatelessWidget {
+  const _RawLogCard({required this.entries});
+
+  final List<RawScanResult> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF142320),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Raw Scan Log',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (entries.isEmpty)
+            Text(
+              'No raw scans yet.',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+            )
+          else
+            for (final entry in entries)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  _formatRawEntry(entry),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+
+  String _formatRawEntry(RawScanResult entry) {
+    final label = entry.localName ?? entry.deviceName ?? entry.deviceId ?? entry.targetToken;
+    final mfg = entry.manufacturerDataLen == null ? '' : ' • mfg:${entry.manufacturerDataLen}';
+    return '${entry.rssi}dBm • $label$mfg';
   }
 }
 
