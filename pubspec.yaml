@@ -37,5 +37,5 @@ melos:
       description: Format all Dart files in this project.
 
     format:ci:
-      run: melos exec -- "dart format . --set-exit-if-changed"
+      run: melos exec -- "dart format --line-length 120 . --set-exit-if-changed"
       description: Check Dart file formatting for all packages in this project.

@@ -15,15 +15,14 @@ final class Beacon: NSObject, CBPeripheralManagerDelegate {
     print("Peripheral state =", peripheral.state.rawValue)
     guard peripheral.state == .poweredOn else { return }
 
-    guard let tokenData = Data(hex: tokenHex) else {
+    guard Data(hex: tokenHex) != nil else {
       print("Invalid hex token")
       return
     }
 
-    let serviceData: [CBUUID: Data] = [serviceUUID: tokenData]
     let payload: [String: Any] = [
       CBAdvertisementDataServiceUUIDsKey: [serviceUUID],
-      CBAdvertisementDataServiceDataKey: serviceData
+      CBAdvertisementDataLocalNameKey: tokenHex
     ]
 
     pm.stopAdvertising()

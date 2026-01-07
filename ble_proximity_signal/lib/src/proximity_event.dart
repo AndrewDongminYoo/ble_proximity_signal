@@ -30,6 +30,7 @@ class ProximityEvent {
     this.manufacturerDataLen,
     this.serviceDataLen,
     this.serviceDataUuids,
+    this.serviceUuids,
   });
 
   /// Token (normalized hex) for the advertising device.
@@ -81,6 +82,9 @@ class ProximityEvent {
   /// Debug: service data UUID keys if available.
   final List<String>? serviceDataUuids;
 
+  /// Debug: advertised service UUIDs if available.
+  final List<String>? serviceUuids;
+
   @override
   String toString() {
     return 'ProximityEvent(token=$targetToken, rssi=$rssi, '
@@ -89,6 +93,7 @@ class ProximityEvent {
         'deviceName=$deviceName, localName=$localName, '
         'manufacturerDataLen=$manufacturerDataLen, '
         'serviceDataLen=$serviceDataLen, '
-        'serviceDataUuids=$serviceDataUuids)';
+        'serviceDataUuids=$serviceDataUuids, '
+        'serviceUuids=$serviceUuids)';
   }
 }

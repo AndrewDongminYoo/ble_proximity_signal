@@ -67,6 +67,7 @@ class SignalProcessor {
         manufacturerDataLen: raw.manufacturerDataLen,
         serviceDataLen: raw.serviceDataLen,
         serviceDataUuids: raw.serviceDataUuids,
+        serviceUuids: raw.serviceUuids,
       ),
     );
 
@@ -87,6 +88,7 @@ class SignalProcessor {
       ..manufacturerDataLen = raw.manufacturerDataLen
       ..serviceDataLen = raw.serviceDataLen
       ..serviceDataUuids = raw.serviceDataUuids
+      ..serviceUuids = raw.serviceUuids
       ..staleTimer?.cancel();
 
     state.staleTimer = _scheduleStale(raw.targetToken);
@@ -119,6 +121,7 @@ class SignalProcessor {
         manufacturerDataLen: raw.manufacturerDataLen,
         serviceDataLen: raw.serviceDataLen,
         serviceDataUuids: raw.serviceDataUuids,
+        serviceUuids: raw.serviceUuids,
       ),
     );
   }
@@ -162,6 +165,7 @@ class SignalProcessor {
           manufacturerDataLen: state.manufacturerDataLen,
           serviceDataLen: state.serviceDataLen,
           serviceDataUuids: state.serviceDataUuids,
+          serviceUuids: state.serviceUuids,
         ),
       );
     });
@@ -252,6 +256,7 @@ class _TargetState {
     this.manufacturerDataLen,
     this.serviceDataLen,
     this.serviceDataUuids,
+    this.serviceUuids,
   });
 
   double? smoothRssi;
@@ -263,5 +268,6 @@ class _TargetState {
   int? manufacturerDataLen;
   int? serviceDataLen;
   List<String>? serviceDataUuids;
+  List<String>? serviceUuids;
   Timer? staleTimer;
 }

@@ -62,6 +62,7 @@ class RawScanResult {
     this.manufacturerDataLen,
     this.serviceDataLen,
     this.serviceDataUuids,
+    this.serviceUuids,
   });
 
   /// Converts a map to a `RawScanResult` object by validating and extracting specific fields.
@@ -75,6 +76,7 @@ class RawScanResult {
     final manufacturerDataLen = map['manufacturerDataLen'];
     final serviceDataLen = map['serviceDataLen'];
     final serviceDataUuids = map['serviceDataUuids'];
+    final serviceUuids = map['serviceUuids'];
 
     if (token is! String) {
       throw ArgumentError.value(token, 'targetToken', 'must be a String');
@@ -126,6 +128,24 @@ class RawScanResult {
         }
       }
     }
+    if (serviceUuids != null) {
+      if (serviceUuids is! List) {
+        throw ArgumentError.value(
+          serviceUuids,
+          'serviceUuids',
+          'must be a List<String>',
+        );
+      }
+      for (final entry in serviceUuids) {
+        if (entry is! String) {
+          throw ArgumentError.value(
+            serviceUuids,
+            'serviceUuids',
+            'must contain only String values',
+          );
+        }
+      }
+    }
 
     return RawScanResult(
       targetToken: token,
@@ -136,7 +156,8 @@ class RawScanResult {
       localName: localName as String?,
       manufacturerDataLen: manufacturerDataLen as int?,
       serviceDataLen: serviceDataLen as int?,
-      serviceDataUuids: serviceDataUuids as List<String>?,
+      serviceDataUuids: serviceDataUuids == null ? null : List<String>.from(serviceDataUuids as List),
+      serviceUuids: serviceUuids == null ? null : List<String>.from(serviceUuids as List),
     );
   }
 
@@ -169,12 +190,15 @@ class RawScanResult {
   /// Debug: service data UUID keys if available.
   final List<String>? serviceDataUuids;
 
+  /// Debug: advertised service UUIDs if available.
+  final List<String>? serviceUuids;
+
   @override
   String toString() {
     return 'RawScanResult(token=$targetToken, rssi=$rssi, ts=$timestampMs, '
         'deviceId=$deviceId, deviceName=$deviceName, localName=$localName, '
         'serviceDataLen=$serviceDataLen, serviceDataUuids=$serviceDataUuids, '
-        'manufacturerDataLen=$manufacturerDataLen)';
+        'serviceUuids=$serviceUuids, manufacturerDataLen=$manufacturerDataLen)';
   }
 }
 

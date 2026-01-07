@@ -118,10 +118,10 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
 
     guard let peripheral = peripheral, peripheral.state == .poweredOn else { return }
 
-    let serviceData: [CBUUID: Data] = [uuid: tokenBytes]
+    let tokenHex = bytesToHexLower(tokenBytes)
     let payload: [String: Any] = [
       CBAdvertisementDataServiceUUIDsKey: [uuid],
-      CBAdvertisementDataServiceDataKey: serviceData
+      CBAdvertisementDataLocalNameKey: tokenHex
     ]
     peripheral.startAdvertising(payload)
   }
@@ -198,7 +198,10 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     guard let uuid = self.serviceUUID else { return }
     let serviceData = advertisementData[CBAdvertisementDataServiceDataKey] as? [CBUUID: Data]
     let tokenBytes = serviceData?[uuid]
-    let tokenHex = tokenBytes.map { bytesToHexLower($0) }
+    let tokenHexFromServiceData = tokenBytes.map { bytesToHexLower($0) }
+    let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+    let tokenHexFromLocalName = localName.flatMap { normalizeTokenToHex($0) }
+    let tokenHex = tokenHexFromServiceData ?? tokenHexFromLocalName
 
     if !debugAllowAll {
       guard let tokenHex, targetTokenSet.contains(tokenHex) else { return }
@@ -206,10 +209,11 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
 
     let tsMs = Int(Date().timeIntervalSince1970 * 1000)
     let deviceId = peripheral.identifier.uuidString
-    let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
     let manufacturerDataLen = (advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data)?.count
     let serviceDataLen = serviceData?.reduce(0) { $0 + $1.value.count }
     let serviceDataUuids = serviceData?.keys.map { $0.uuidString }
+    let serviceUuids =
+      (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID])?.map { $0.uuidString }
     let targetToken = tokenHex ?? deviceId
 
     var payload: [String: Any] = [
@@ -230,6 +234,9 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     if let serviceDataUuids, !serviceDataUuids.isEmpty {
       payload["serviceDataUuids"] = serviceDataUuids
     }
+    if let serviceUuids, !serviceUuids.isEmpty {
+      payload["serviceUuids"] = serviceUuids
+    }
 
     eventSink?(payload)
   }
@@ -241,6 +248,17 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     if peripheral.state == .poweredOn, let uuid = self.serviceUUID {
       // We don't have the last token stored; v0.1.0 requires user to call startBroadcast again
       // If you want auto-resume, store last token bytes in a field.
+    }
+  }
+
+  public func peripheralManagerDidStartAdvertising(
+    _ peripheral: CBPeripheralManager,
+    error: Error?
+  ) {
+    if let error {
+      print("didStartAdvertising error:", error)
+    } else {
+      print("Advertising started")
     }
   }
 

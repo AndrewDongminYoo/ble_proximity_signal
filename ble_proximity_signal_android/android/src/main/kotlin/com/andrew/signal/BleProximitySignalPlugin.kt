@@ -253,20 +253,27 @@ class BleProximitySignalPlugin :
                 ) {
                     val record = result.scanRecord ?: return
                     val serviceData = record.getServiceData(parcelUuid)
-                    val tokenHex = serviceData?.let { bytesToHexLower(it) }
+                    val tokenHexFromServiceData = serviceData?.let { bytesToHexLower(it) }
+
+                    val deviceId = result.device?.address
+                    val deviceName = result.device?.name
+                    val localName = record.deviceName
+                    val tokenHexFromLocalName =
+                        localName?.let { name ->
+                            runCatching { normalizeTokenToHex(name) }.getOrNull()
+                        }
+                    val tokenHex = tokenHexFromServiceData ?: tokenHexFromLocalName
 
                     if (!debugAllowAll) {
                         if (tokenHex == null || !targetTokenSet.contains(tokenHex)) return
                     }
 
-                    val deviceId = result.device?.address
-                    val deviceName = result.device?.name
-                    val localName = record.deviceName
                     val manufacturerDataLen = manufacturerDataLength(record)
                     val sd = record.serviceData
                     val serviceDataLen = sd?.values?.sumOf { it.size } ?: 0
                     val serviceDataUuids = sd?.keys?.map { it.uuid.toString() } ?: emptyList()
-                    val targetToken = tokenHex ?: deviceId ?: ""
+                    val serviceUuids = record.serviceUuids?.map { it.uuid.toString() } ?: emptyList()
+                    val targetToken = tokenHex ?: deviceId ?: localName ?: ""
 
                     val payload =
                         hashMapOf<String, Any>(
@@ -284,6 +291,9 @@ class BleProximitySignalPlugin :
                     }
                     if (serviceDataUuids.isNotEmpty()) {
                         payload["serviceDataUuids"] = serviceDataUuids
+                    }
+                    if (serviceUuids.isNotEmpty()) {
+                        payload["serviceUuids"] = serviceUuids
                     }
                     eventSink?.success(payload)
                 }

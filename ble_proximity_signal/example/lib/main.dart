@@ -648,10 +648,13 @@ class _RawLogCard extends StatelessWidget {
     final label = entry.localName ?? entry.deviceName ?? entry.deviceId ?? entry.targetToken;
     final mfg = entry.manufacturerDataLen == null ? '' : ' • mfg:${entry.manufacturerDataLen}';
     final svcLen = entry.serviceDataLen == null ? '' : ' • svcLen:${entry.serviceDataLen}';
-    final svcUuids = (entry.serviceDataUuids == null || entry.serviceDataUuids!.isEmpty)
+    final svcDataUuids = (entry.serviceDataUuids == null || entry.serviceDataUuids!.isEmpty)
         ? ''
-        : ' • svc:${entry.serviceDataUuids!.join(",")}';
-    return '${entry.rssi}dBm • $label$mfg$svcLen$svcUuids';
+        : ' • svcData:${entry.serviceDataUuids!.join(",")}';
+    final svcUuids = (entry.serviceUuids == null || entry.serviceUuids!.isEmpty)
+        ? ''
+        : ' • svc:${entry.serviceUuids!.join(",")}';
+    return '${entry.rssi}dBm • $label$mfg$svcLen$svcDataUuids$svcUuids';
   }
 }
 
