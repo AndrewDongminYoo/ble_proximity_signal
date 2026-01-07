@@ -227,6 +227,7 @@ class _HomePageState extends State<HomePage> {
             content: SingleChildScrollView(
               child: SelectableText(dump),
             ),
+            backgroundColor: const Color(0xFF3C5E57),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -495,18 +496,11 @@ class _SignalCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _MetricChip(label: 'RSSI', value: rssi?.toString() ?? '--'),
-              _MetricChip(
-                label: 'Smooth',
-                value: smoothRssi == null ? '--' : smoothRssi!.toStringAsFixed(1),
-              ),
-              if (deviceId != null) _MetricChip(label: 'Device ID', value: deviceId!),
-              if (deviceName != null) _MetricChip(label: 'Device Name', value: deviceName!),
-              if (localName != null) _MetricChip(label: 'Local Name', value: localName!),
-              if (manufacturerDataLen != null)
-                _MetricChip(
-                  label: 'MFG Len',
-                  value: manufacturerDataLen.toString(),
-                ),
+              _MetricChip(label: 'Smooth', value: smoothRssi?.toStringAsFixed(1) ?? '--'),
+              _MetricChip(label: 'Device ID', value: deviceId ?? '--'),
+              _MetricChip(label: 'Device Name', value: deviceName ?? '--'),
+              _MetricChip(label: 'Local Name', value: localName ?? '--'),
+              _MetricChip(label: 'MFG Len', value: manufacturerDataLen?.toString() ?? '--'),
             ],
           ),
         ],
@@ -745,8 +739,9 @@ class _DeviceRow extends StatelessWidget {
     final serviceDataUuidLine = (data.serviceDataUuids == null || data.serviceDataUuids!.isEmpty)
         ? null
         : 'svcDataUuids: ${data.serviceDataUuids!.join(",")}';
-    final serviceUuidLine =
-        (data.serviceUuids == null || data.serviceUuids!.isEmpty) ? null : 'svcUuids: ${data.serviceUuids!.join(",")}';
+    final serviceUuidLine = (data.serviceUuids == null || data.serviceUuids!.isEmpty)
+        ? null
+        : 'svcUuids: ${data.serviceUuids!.join(",")}';
 
     final lines = <String>[
       if (data.deviceId != null) 'deviceId: ${data.deviceId}',
