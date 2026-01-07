@@ -65,6 +65,8 @@ class SignalProcessor {
         deviceName: raw.deviceName,
         localName: raw.localName,
         manufacturerDataLen: raw.manufacturerDataLen,
+        serviceDataLen: raw.serviceDataLen,
+        serviceDataUuids: raw.serviceDataUuids,
       ),
     );
 
@@ -83,6 +85,8 @@ class SignalProcessor {
       ..deviceName = raw.deviceName
       ..localName = raw.localName
       ..manufacturerDataLen = raw.manufacturerDataLen
+      ..serviceDataLen = raw.serviceDataLen
+      ..serviceDataUuids = raw.serviceDataUuids
       ..staleTimer?.cancel();
 
     state.staleTimer = _scheduleStale(raw.targetToken);
@@ -113,6 +117,8 @@ class SignalProcessor {
         deviceName: raw.deviceName,
         localName: raw.localName,
         manufacturerDataLen: raw.manufacturerDataLen,
+        serviceDataLen: raw.serviceDataLen,
+        serviceDataUuids: raw.serviceDataUuids,
       ),
     );
   }
@@ -154,6 +160,8 @@ class SignalProcessor {
           deviceName: state.deviceName,
           localName: state.localName,
           manufacturerDataLen: state.manufacturerDataLen,
+          serviceDataLen: state.serviceDataLen,
+          serviceDataUuids: state.serviceDataUuids,
         ),
       );
     });
@@ -242,6 +250,8 @@ class _TargetState {
     this.deviceName,
     this.localName,
     this.manufacturerDataLen,
+    this.serviceDataLen,
+    this.serviceDataUuids,
   });
 
   double? smoothRssi;
@@ -251,5 +261,7 @@ class _TargetState {
   String? deviceName;
   String? localName;
   int? manufacturerDataLen;
+  int? serviceDataLen;
+  List<String>? serviceDataUuids;
   Timer? staleTimer;
 }

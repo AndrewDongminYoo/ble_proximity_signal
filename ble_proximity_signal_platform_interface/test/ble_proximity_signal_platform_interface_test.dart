@@ -8,6 +8,7 @@ class BleProximitySignalMock extends BleProximitySignalPlatform {
   Future<String?> getPlatformName() async => mockPlatformName;
 }
 
+/// Entry point for platform interface tests.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   group('BleProximitySignalPlatformInterface', () {

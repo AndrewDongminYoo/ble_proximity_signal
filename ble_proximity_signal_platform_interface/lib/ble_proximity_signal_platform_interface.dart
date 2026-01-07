@@ -61,6 +61,7 @@ class RawScanResult {
     this.localName,
     this.manufacturerDataLen,
     this.serviceDataLen,
+    this.serviceDataUuids,
   });
 
   /// Converts a map to a `RawScanResult` object by validating and extracting specific fields.
@@ -73,6 +74,7 @@ class RawScanResult {
     final localName = map['localName'];
     final manufacturerDataLen = map['manufacturerDataLen'];
     final serviceDataLen = map['serviceDataLen'];
+    final serviceDataUuids = map['serviceDataUuids'];
 
     if (token is! String) {
       throw ArgumentError.value(token, 'targetToken', 'must be a String');
@@ -106,6 +108,24 @@ class RawScanResult {
         'must be an int',
       );
     }
+    if (serviceDataUuids != null) {
+      if (serviceDataUuids is! List) {
+        throw ArgumentError.value(
+          serviceDataUuids,
+          'serviceDataUuids',
+          'must be a List<String>',
+        );
+      }
+      for (final entry in serviceDataUuids) {
+        if (entry is! String) {
+          throw ArgumentError.value(
+            serviceDataUuids,
+            'serviceDataUuids',
+            'must contain only String values',
+          );
+        }
+      }
+    }
 
     return RawScanResult(
       targetToken: token,
@@ -116,6 +136,7 @@ class RawScanResult {
       localName: localName as String?,
       manufacturerDataLen: manufacturerDataLen as int?,
       serviceDataLen: serviceDataLen as int?,
+      serviceDataUuids: serviceDataUuids as List<String>?
     );
   }
 
@@ -142,14 +163,17 @@ class RawScanResult {
   /// Debug: manufacturer data length if available.
   final int? manufacturerDataLen;
 
-  /// Debug: manufacturer data length if available.
+  /// Debug: total service data length if available.
   final int? serviceDataLen;
+
+  /// Debug: service data UUID keys if available.
+  final List<String>? serviceDataUuids;
 
   @override
   String toString() {
     return 'RawScanResult(token=$targetToken, rssi=$rssi, ts=$timestampMs, '
         'deviceId=$deviceId, deviceName=$deviceName, localName=$localName, '
-        'serviceDataLen=$serviceDataLen, '
+        'serviceDataLen=$serviceDataLen, serviceDataUuids=$serviceDataUuids, '
         'manufacturerDataLen=$manufacturerDataLen)';
   }
 }

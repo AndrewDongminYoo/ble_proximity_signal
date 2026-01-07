@@ -264,7 +264,8 @@ class BleProximitySignalPlugin :
                     val localName = record.deviceName
                     val manufacturerDataLen = manufacturerDataLength(record)
                     val sd = record.serviceData
-                    val serviceDataLen = (0 until sd.size()).sumOf { sd.valueAt(it)?.size ?: 0 }
+                    val serviceDataLen = sd?.values?.sumOf { it.size } ?: 0
+                    val serviceDataUuids = sd?.keys?.map { it.uuid.toString() } ?: emptyList()
                     val targetToken = tokenHex ?: deviceId ?: ""
 
                     val payload =
@@ -278,7 +279,12 @@ class BleProximitySignalPlugin :
                     deviceName?.let { payload["deviceName"] = it }
                     localName?.let { payload["localName"] = it }
                     manufacturerDataLen?.let { payload["manufacturerDataLen"] = it }
-                    payload["serviceDataLen"] = if (serviceDataLen == 0) null else serviceDataLen
+                    if (serviceDataLen > 0) {
+                        payload["serviceDataLen"] = serviceDataLen
+                    }
+                    if (serviceDataUuids.isNotEmpty()) {
+                        payload["serviceDataUuids"] = serviceDataUuids
+                    }
                     eventSink?.success(payload)
                 }
 

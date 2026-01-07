@@ -645,9 +645,19 @@ class _RawLogCard extends StatelessWidget {
   }
 
   String _formatRawEntry(RawScanResult entry) {
-    final label = entry.localName ?? entry.deviceName ?? entry.deviceId ?? entry.targetToken;
-    final mfg = entry.manufacturerDataLen == null ? '' : ' • mfg:${entry.manufacturerDataLen}';
-    return '${entry.rssi}dBm • $label$mfg';
+    final label =
+        entry.localName ?? entry.deviceName ?? entry.deviceId ?? entry.targetToken;
+    final mfg = entry.manufacturerDataLen == null
+        ? ''
+        : ' • mfg:${entry.manufacturerDataLen}';
+    final svcLen = entry.serviceDataLen == null
+        ? ''
+        : ' • svcLen:${entry.serviceDataLen}';
+    final svcUuids = (entry.serviceDataUuids == null ||
+            entry.serviceDataUuids!.isEmpty)
+        ? ''
+        : ' • svc:${entry.serviceDataUuids!.join(",")}';
+    return '${entry.rssi}dBm • $label$mfg$svcLen$svcUuids';
   }
 }
 
