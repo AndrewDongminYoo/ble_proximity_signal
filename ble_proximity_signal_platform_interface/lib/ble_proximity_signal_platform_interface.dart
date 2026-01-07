@@ -60,6 +60,7 @@ class RawScanResult {
     this.deviceName,
     this.localName,
     this.manufacturerDataLen,
+    this.serviceDataLen,
   });
 
   /// Converts a map to a `RawScanResult` object by validating and extracting specific fields.
@@ -71,6 +72,7 @@ class RawScanResult {
     final deviceName = map['deviceName'];
     final localName = map['localName'];
     final manufacturerDataLen = map['manufacturerDataLen'];
+    final serviceDataLen = map['serviceDataLen'];
 
     if (token is! String) {
       throw ArgumentError.value(token, 'targetToken', 'must be a String');
@@ -97,6 +99,13 @@ class RawScanResult {
         'must be an int',
       );
     }
+    if (serviceDataLen != null && serviceDataLen is! int) {
+      throw ArgumentError.value(
+        serviceDataLen,
+        'serviceDataLen',
+        'must be an int',
+      );
+    }
 
     return RawScanResult(
       targetToken: token,
@@ -106,6 +115,7 @@ class RawScanResult {
       deviceName: deviceName as String?,
       localName: localName as String?,
       manufacturerDataLen: manufacturerDataLen as int?,
+      serviceDataLen: serviceDataLen as int?,
     );
   }
 
@@ -132,10 +142,14 @@ class RawScanResult {
   /// Debug: manufacturer data length if available.
   final int? manufacturerDataLen;
 
+  /// Debug: manufacturer data length if available.
+  final int? serviceDataLen;
+
   @override
   String toString() {
     return 'RawScanResult(token=$targetToken, rssi=$rssi, ts=$timestampMs, '
         'deviceId=$deviceId, deviceName=$deviceName, localName=$localName, '
+        'serviceDataLen=$serviceDataLen, '
         'manufacturerDataLen=$manufacturerDataLen)';
   }
 }

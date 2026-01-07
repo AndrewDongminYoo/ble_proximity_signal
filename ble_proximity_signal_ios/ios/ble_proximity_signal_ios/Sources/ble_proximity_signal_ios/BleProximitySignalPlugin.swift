@@ -208,6 +208,8 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     let deviceId = peripheral.identifier.uuidString
     let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
     let manufacturerDataLen = (advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data)?.count
+    let serviceDataAny = advertisementData[CBAdvertisementDataServiceDataKey] as? [CBUUID: Data]
+    let serviceDataLen = serviceDataAny?.reduce(0) { $0 + $1.value.count }
     let targetToken = tokenHex ?? deviceId
 
     var payload: [String: Any] = [
@@ -218,6 +220,9 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     ]
     if let localName {
       payload["localName"] = localName
+    }
+    if let serviceDataLen {
+      payload["serviceDataLen"] = serviceDataLen
     }
     if let manufacturerDataLen {
       payload["manufacturerDataLen"] = manufacturerDataLen

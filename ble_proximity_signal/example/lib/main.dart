@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:ble_proximity_signal/ble_proximity_signal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -117,6 +118,11 @@ class _HomePageState extends State<HomePage> {
         }
       },
     );
+
+    _ble.rawScanLog(maxEntries: 50).listen((buffer) {
+      if (buffer.isEmpty) return;
+      log(buffer.first.toString());
+    });
 
     try {
       await _ble.startScan(
