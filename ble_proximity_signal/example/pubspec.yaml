@@ -1,17 +1,19 @@
 name: ble_proximity_signal_example
 description: Demonstrates how to use the ble_proximity_signal plugin.
 version: 0.1.0+1
+publish_to: none
 
 environment:
   sdk: ^3.9.0
 
 dependencies:
-  # When depending on this package from a real application you should use:
-  #   ble_proximity_signal: ^x.y.z
-  # See https://dart.dev/tools/pub/dependencies#version-constraints
-  # The example app is bundled with the plugin so we use a path dependency on
-  # the parent directory to use the current plugin's version.
-  ble_proximity_signal: ^0.1.0+1
+  ble_proximity_signal:
+    # When depending on this package from a real application you should use:
+    #   ble_proximity_signal: ^x.y.z
+    # See https://dart.dev/tools/pub/dependencies#version-constraints
+    # The example app is bundled with the plugin so we use a path dependency on
+    # the parent directory to use the current plugin's version.
+    path: ../
   flutter:
     sdk: flutter
 
