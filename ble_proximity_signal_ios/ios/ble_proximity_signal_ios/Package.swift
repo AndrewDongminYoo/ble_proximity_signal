@@ -9,7 +9,7 @@ let package = Package(
         .iOS("13.0"),
     ],
     products: [
-        .library(name: "ble-proximity-signal-ios", targets: ["ble_proximity_signal_ios"])
+        .library(name: "ble-proximity-signal-ios", targets: ["ble_proximity_signal_ios"]),
     ],
     dependencies: [],
     targets: [
@@ -28,6 +28,6 @@ let package = Package(
                 // the following instructions to add them:
                 // https://developer.apple.com/documentation/xcode/bundling-resources-with-a-swift-package
             ]
-        )
+        ),
     ]
 )

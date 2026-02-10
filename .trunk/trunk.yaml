@@ -20,16 +20,17 @@ lint:
   disabled:
     - dart
   enabled:
+    - swiftformat@0.59.1
     - actionlint@1.7.10
-    - checkov@3.2.497
+    - checkov@3.2.500
     - git-diff-check
     - ktlint@1.8.0
     - markdownlint@0.47.0
-    - oxipng@10.0.0
-    - prettier@3.7.4
+    - oxipng@10.1.0
+    - prettier@3.8.1
     - svgo@4.0.0
-    - trufflehog@3.92.4
-    - yamllint@1.37.1
+    - trufflehog@3.93.1
+    - yamllint@1.38.0
 actions:
   enabled:
     - trunk-announce
