@@ -384,6 +384,72 @@ Test summary:
 3. **Create reusable actions for common patterns**
 4. **Use for fast CI/CD smoke tests**
 
+---
+
+## Known Limitations
+
+### Bluetooth Testing on Android Emulators
+
+**Problem:** Android emulators don't have real Bluetooth hardware.
+
+**Symptoms:**
+
+```
+PlatformException(illegal_state, Bluetooth not supported, null)
+```
+
+**Impact:**
+
+- ❌ Cannot test BLE permissions on Android emulators
+- ❌ Cannot test BLE scanning/advertising
+- ✅ UI tests still work
+- ✅ Non-BLE functionality can be tested
+
+**Workaround:**
+
+1. **For Android BLE Testing:**
+   - Use **real Android devices** (not emulators)
+   - Manual testing for BLE-specific features
+   - Document expected behavior
+
+2. **For Automated Testing:**
+   - Run non-BLE UI tests on emulators
+   - Run full BLE tests on real devices only
+   - Consider mocking BLE layer for unit tests
+
+3. **Test Strategy:**
+
+   ```bash
+   # iOS: Full BLE tests (simulator supports BLE APIs)
+   patrol test -t integration_test/patrol_test.dart -d "iPhone 17"
+
+   # Android: Run on real device only
+   patrol test -t integration_test/patrol_test.dart -d <real-device-id>
+
+   # Android Emulator: Skip BLE tests or expect graceful failures
+   ```
+
+**Current Status:**
+
+- ✅ **iOS**: 4/4 Patrol tests passing (including BLE permissions)
+- ⚠️ **Android Emulator**: Bluetooth hardware limitation
+- 📱 **Android Real Device**: Recommended for BLE testing
+
+### Permission Dialog Testing
+
+**iOS:**
+
+- ✅ Permission dialogs work on simulators
+- ✅ `$.platformAutomator.mobile.grantPermissionWhenInUse()` works reliably
+
+**Android:**
+
+- ⚠️ Permission dialogs may not appear on emulators
+- ⚠️ Bluetooth permissions tied to hardware availability
+- ✅ Other permissions (camera, location) work on emulators
+
+---
+
 ## Conclusion
 
 Both tools have their place:
