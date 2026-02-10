@@ -1,6 +1,7 @@
 include: package:very_good_analysis/analysis_options.yaml
 analyzer:
   errors:
-    lines_longer_than_80_chars: ignore
+    avoid_catches_without_on_clauses: ignore
     flutter_style_todos: ignore
-    public_member_api_docs: false
+    lines_longer_than_80_chars: ignore
+    public_member_api_docs: ignore
