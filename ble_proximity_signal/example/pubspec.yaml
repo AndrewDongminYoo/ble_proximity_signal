@@ -24,7 +24,16 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
+  patrol: ^4.1.1
   very_good_analysis: ^10.0.0
 
 flutter:
   uses-material-design: true
+
+patrol:
+  app_name: Ble Proximity Signal Example
+  test_directory: integration_test # Use custom directory
+  android:
+    package_name: com.andrew.signal.example
+  ios:
+    bundle_id: com.andrew.signal.bleProximitySignalExample
