@@ -3,3 +3,4 @@ analyzer:
   errors:
     lines_longer_than_80_chars: ignore
     flutter_style_todos: ignore
+    cascade_invocations: ignore
