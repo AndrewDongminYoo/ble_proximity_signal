@@ -72,6 +72,16 @@ void main() {
         // Check Debug UI
         expect(find.text('Visible Devices (refresh 1s)'), findsOneWidget);
 
+        // Wait for UI to fully stabilize after debug mode change
+        await $.pumpAndSettle();
+        await $.pump(const Duration(milliseconds: 500));
+
+        // Scroll to make scan button visible (debug device list may push it off-screen)
+        await $.scrollUntilVisible(
+          finder: find.byKey(const Key('target_scan_button')),
+        );
+        await $.pumpAndSettle();
+
         // Start scan
         await $.tap(find.byKey(const Key('target_scan_button')));
         await $.pump(const Duration(milliseconds: 500));
