@@ -8,17 +8,27 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
-import android.bluetooth.le.*
+import android.bluetooth.le.AdvertiseCallback
+import android.bluetooth.le.AdvertiseData
+import android.bluetooth.le.AdvertiseSettings
+import android.bluetooth.le.BluetoothLeAdvertiser
+import android.bluetooth.le.BluetoothLeScanner
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
+import android.bluetooth.le.ScanRecord
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import androidx.annotation.NonNull
+import androidx.annotation.RequiresApi
+import androidx.core.util.isEmpty
+import androidx.core.util.size
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import java.nio.ByteBuffer
 import java.util.Base64
 import java.util.Locale
 import java.util.UUID
@@ -59,9 +69,7 @@ class BleProximitySignalPlugin :
         var timeout: Runnable? = null,
     )
 
-    override fun onAttachedToEngine(
-        @NonNull binding: FlutterPlugin.FlutterPluginBinding,
-    ) {
+    override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         applicationContext = binding.applicationContext
 
         methodChannel = MethodChannel(binding.binaryMessenger, "ble_proximity_signal")
@@ -74,10 +82,8 @@ class BleProximitySignalPlugin :
         bluetoothAdapter = bm.adapter
     }
 
-    override fun onDetachedFromEngine(
-        @NonNull binding: FlutterPlugin.FlutterPluginBinding,
-    ) {
-        stopScanInternal()
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        stopScanInternal(resetState = true)
         stopBroadcastInternal()
         pendingDiscovery?.gatt?.disconnect()
         pendingDiscovery?.gatt?.close()
@@ -100,9 +106,10 @@ class BleProximitySignalPlugin :
         eventSink = null
     }
 
+    @RequiresApi(value = Build.VERSION_CODES.O)
     override fun onMethodCall(
-        @NonNull call: MethodCall,
-        @NonNull result: MethodChannel.Result,
+        call: MethodCall,
+        result: MethodChannel.Result,
     ) {
         try {
             when (call.method) {
@@ -164,6 +171,7 @@ class BleProximitySignalPlugin :
     // Broadcast (Advertising)
     // ----------------------------
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun startBroadcastInternal(
         token: String,
         serviceUuidStr: String,
@@ -237,6 +245,7 @@ class BleProximitySignalPlugin :
     // Scan
     // ----------------------------
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun startScanInternal(
         targetTokens: List<String>,
         serviceUuidStr: String,
@@ -256,9 +265,11 @@ class BleProximitySignalPlugin :
         currentServiceUuid = uuid
 
         // Normalize tokens to hex lowercase to compare
-        targetTokenSet = if (debugAllowAll) emptySet() else targetTokens.map { normalizeTokenToHex(it) }.toSet()
+        targetTokenSet =
+            if (debugAllowAll) emptySet() else targetTokens.map { normalizeTokenToHex(it) }.toSet()
 
-        scanner = adapter.bluetoothLeScanner ?: throw IllegalStateException("BLE scanner not available")
+        scanner =
+            adapter.bluetoothLeScanner ?: throw IllegalStateException("BLE scanner not available")
 
         val parcelUuid = android.os.ParcelUuid(uuid)
 
@@ -280,6 +291,7 @@ class BleProximitySignalPlugin :
 
         scanCallback =
             object : ScanCallback() {
+                @RequiresApi(Build.VERSION_CODES.O)
                 override fun onScanResult(
                     callbackType: Int,
                     result: ScanResult,
@@ -315,7 +327,8 @@ class BleProximitySignalPlugin :
                             ?.associate { entry ->
                                 entry.key.uuid.toString() to bytesToHexLower(entry.value)
                             }.orEmpty()
-                    val serviceUuids = record.serviceUuids?.map { it.uuid.toString() } ?: emptyList()
+                    val serviceUuids =
+                        record.serviceUuids?.map { it.uuid.toString() } ?: emptyList()
                     val targetToken = tokenHex ?: deviceId ?: localName ?: ""
                     val localNameHex =
                         localName?.let { bytesToHexLower(it.toByteArray(Charsets.UTF_8)) }
@@ -375,9 +388,9 @@ class BleProximitySignalPlugin :
 
     private fun manufacturerDataLength(record: ScanRecord): Int? {
         val data = record.manufacturerSpecificData ?: return null
-        if (data.size() == 0) return null
+        if (data.isEmpty()) return null
         var total = 0
-        for (i in 0 until data.size()) {
+        for (i in 0 until data.size) {
             val bytes = data.valueAt(i)
             total += bytes?.size ?: 0
         }
@@ -386,9 +399,9 @@ class BleProximitySignalPlugin :
 
     private fun manufacturerDataHex(record: ScanRecord): String? {
         val data = record.manufacturerSpecificData ?: return null
-        if (data.size() == 0) return null
+        if (data.isEmpty()) return null
         val parts = mutableListOf<String>()
-        for (i in 0 until data.size()) {
+        for (i in 0 until data.size) {
             val id = data.keyAt(i)
             val bytes = data.valueAt(i) ?: continue
             val hex = bytesToHexLower(bytes)
@@ -462,11 +475,16 @@ class BleProximitySignalPlugin :
         val gatt =
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    device.connectGatt(applicationContext, false, callback, BluetoothDevice.TRANSPORT_LE)
+                    device.connectGatt(
+                        applicationContext,
+                        false,
+                        callback,
+                        BluetoothDevice.TRANSPORT_LE,
+                    )
                 } else {
                     device.connectGatt(applicationContext, false, callback)
                 }
-            } catch (e: SecurityException) {
+            } catch (_: SecurityException) {
                 pendingDiscovery = null
                 result.error("permission_denied", "Missing BLUETOOTH_CONNECT permission", null)
                 return
@@ -552,11 +570,13 @@ class BleProximitySignalPlugin :
     // Token helpers
     // ----------------------------
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun normalizeTokenToHex(token: String): String {
         val bytes = decodeTokenToBytes(token)
         return bytesToHexLower(bytes)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun decodeTokenToBytes(token: String): ByteArray {
         // Try hex first
         val hex = token.trim()
@@ -575,7 +595,7 @@ class BleProximitySignalPlugin :
                     else -> normalized
                 }
             Base64.getDecoder().decode(padded)
-        } catch (e: Throwable) {
+        } catch (_: Throwable) {
             throw IllegalArgumentException("Invalid token format (expected hex or base64url/base64)")
         }
     }
