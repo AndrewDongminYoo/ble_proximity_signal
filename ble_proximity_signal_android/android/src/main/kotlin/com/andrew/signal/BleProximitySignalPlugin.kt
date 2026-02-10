@@ -1,5 +1,7 @@
 package com.andrew.signal
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
@@ -19,10 +21,10 @@ import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import androidx.annotation.RequiresApi
+import android.os.ParcelUuid
+import androidx.annotation.RequiresPermission
 import androidx.core.util.isEmpty
 import androidx.core.util.size
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -82,6 +84,9 @@ class BleProximitySignalPlugin :
         bluetoothAdapter = bm.adapter
     }
 
+    @RequiresPermission(
+        allOf = [Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_ADVERTISE, Manifest.permission.BLUETOOTH_SCAN],
+    )
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         stopScanInternal(resetState = true)
         stopBroadcastInternal()
@@ -106,7 +111,9 @@ class BleProximitySignalPlugin :
         eventSink = null
     }
 
-    @RequiresApi(value = Build.VERSION_CODES.O)
+    @RequiresPermission(
+        allOf = [Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_ADVERTISE, Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT],
+    )
     override fun onMethodCall(
         call: MethodCall,
         result: MethodChannel.Result,
@@ -171,7 +178,9 @@ class BleProximitySignalPlugin :
     // Broadcast (Advertising)
     // ----------------------------
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresPermission(
+        allOf = [Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_ADVERTISE, Manifest.permission.BLUETOOTH_CONNECT],
+    )
     private fun startBroadcastInternal(
         token: String,
         serviceUuidStr: String,
@@ -208,7 +217,7 @@ class BleProximitySignalPlugin :
             settingsBuilder.setTxPowerLevel(level)
         }
 
-        val parcelUuid = android.os.ParcelUuid(uuid)
+        val parcelUuid = ParcelUuid(uuid)
 
         val data =
             AdvertiseData
@@ -229,6 +238,7 @@ class BleProximitySignalPlugin :
         advertiser?.startAdvertising(settingsBuilder.build(), data, advertiseCallback)
     }
 
+    @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_ADVERTISE])
     private fun stopBroadcastInternal() {
         val adv = advertiser ?: return
         val cb = advertiseCallback ?: return
@@ -245,7 +255,7 @@ class BleProximitySignalPlugin :
     // Scan
     // ----------------------------
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN])
     private fun startScanInternal(
         targetTokens: List<String>,
         serviceUuidStr: String,
@@ -271,7 +281,7 @@ class BleProximitySignalPlugin :
         scanner =
             adapter.bluetoothLeScanner ?: throw IllegalStateException("BLE scanner not available")
 
-        val parcelUuid = android.os.ParcelUuid(uuid)
+        val parcelUuid = ParcelUuid(uuid)
 
         val filters =
             if (debugAllowAll) {
@@ -291,7 +301,7 @@ class BleProximitySignalPlugin :
 
         scanCallback =
             object : ScanCallback() {
-                @RequiresApi(Build.VERSION_CODES.O)
+                @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
                 override fun onScanResult(
                     callbackType: Int,
                     result: ScanResult,
@@ -369,6 +379,7 @@ class BleProximitySignalPlugin :
         scanner?.startScan(filters, settings, scanCallback)
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     private fun stopScanInternal(resetState: Boolean) {
         val sc = scanner
         val cb = scanCallback
@@ -414,6 +425,7 @@ class BleProximitySignalPlugin :
     // Debug connect + discover
     // ----------------------------
 
+    @SuppressLint("MissingPermission")
     private fun debugDiscoverServicesInternal(
         deviceId: String,
         timeoutMs: Int,
@@ -441,6 +453,7 @@ class BleProximitySignalPlugin :
 
         val callback =
             object : BluetoothGattCallback() {
+                @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
                 override fun onConnectionStateChange(
                     gatt: BluetoothGatt,
                     status: Int,
@@ -458,6 +471,7 @@ class BleProximitySignalPlugin :
                     }
                 }
 
+                @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
                 override fun onServicesDiscovered(
                     gatt: BluetoothGatt,
                     status: Int,
@@ -474,16 +488,12 @@ class BleProximitySignalPlugin :
 
         val gatt =
             try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    device.connectGatt(
-                        applicationContext,
-                        false,
-                        callback,
-                        BluetoothDevice.TRANSPORT_LE,
-                    )
-                } else {
-                    device.connectGatt(applicationContext, false, callback)
-                }
+                device.connectGatt(
+                    applicationContext,
+                    false,
+                    callback,
+                    BluetoothDevice.TRANSPORT_LE,
+                )
             } catch (_: SecurityException) {
                 pendingDiscovery = null
                 result.error("permission_denied", "Missing BLUETOOTH_CONNECT permission", null)
@@ -503,6 +513,7 @@ class BleProximitySignalPlugin :
         mainHandler.postDelayed(timeout, timeoutMs.toLong())
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun finishDiscoverySuccess(dump: String) {
         val request = pendingDiscovery ?: return
         pendingDiscovery = null
@@ -512,6 +523,7 @@ class BleProximitySignalPlugin :
         request.gatt?.close()
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun finishDiscoveryError(message: String) {
         val request = pendingDiscovery ?: return
         pendingDiscovery = null
@@ -521,6 +533,7 @@ class BleProximitySignalPlugin :
         request.gatt?.close()
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun buildGattDump(
         gatt: BluetoothGatt,
         deviceId: String,
@@ -570,13 +583,13 @@ class BleProximitySignalPlugin :
     // Token helpers
     // ----------------------------
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun normalizeTokenToHex(token: String): String {
         val bytes = decodeTokenToBytes(token)
         return bytesToHexLower(bytes)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun decodeTokenToBytes(token: String): ByteArray {
         // Try hex first
         val hex = token.trim()
