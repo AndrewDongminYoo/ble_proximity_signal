@@ -21,9 +21,12 @@ import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.util.isEmpty
 import androidx.core.util.size
@@ -34,15 +37,25 @@ import io.flutter.plugin.common.MethodChannel
 import java.util.Base64
 import java.util.Locale
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 class BleProximitySignalPlugin :
     FlutterPlugin,
     MethodChannel.MethodCallHandler,
     EventChannel.StreamHandler {
+    companion object {
+        private const val TAG = "BleProximitySignal"
+        private const val DEFAULT_DISCOVERY_TIMEOUT_MS = 8000
+        private const val MAX_TARGET_TOKENS = 5
+        private const val DEFAULT_TX_POWER = AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM
+    }
+
     private lateinit var applicationContext: Context
     private lateinit var methodChannel: MethodChannel
     private lateinit var eventChannel: EventChannel
 
+    // Thread-safety: lock for synchronized access to mutable state
+    private val lock = Any()
     private var eventSink: EventChannel.EventSink? = null
 
     private var bluetoothAdapter: BluetoothAdapter? = null
@@ -59,8 +72,8 @@ class BleProximitySignalPlugin :
     // Current service UUID used for scan/broadcast
     private var currentServiceUuid: UUID? = null
 
-    // Debug: discovered devices for connect + discover
-    private val discoveredDevices: MutableMap<String, BluetoothDevice> = mutableMapOf()
+    // Debug: discovered devices for connect + discover (thread-safe)
+    private val discoveredDevices: ConcurrentHashMap<String, BluetoothDevice> = ConcurrentHashMap()
     private val mainHandler = Handler(Looper.getMainLooper())
     private var pendingDiscovery: DiscoveryRequest? = null
 
@@ -88,27 +101,41 @@ class BleProximitySignalPlugin :
         allOf = [Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_ADVERTISE, Manifest.permission.BLUETOOTH_SCAN],
     )
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        // Cancel all pending Handler callbacks to prevent memory leaks
+        mainHandler.removeCallbacksAndMessages(null)
+
         stopScanInternal(resetState = true)
         stopBroadcastInternal()
-        pendingDiscovery?.gatt?.disconnect()
-        pendingDiscovery?.gatt?.close()
+
+        // Clean up pending discovery
+        pendingDiscovery?.let {
+            it.timeout?.let { timeout -> mainHandler.removeCallbacks(timeout) }
+            it.gatt?.disconnect()
+            it.gatt?.close()
+        }
         pendingDiscovery = null
         discoveredDevices.clear()
 
         methodChannel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)
-        eventSink = null
+        synchronized(lock) {
+            eventSink = null
+        }
     }
 
     override fun onListen(
         arguments: Any?,
         events: EventChannel.EventSink?,
     ) {
-        eventSink = events
+        synchronized(lock) {
+            eventSink = events
+        }
     }
 
     override fun onCancel(arguments: Any?) {
-        eventSink = null
+        synchronized(lock) {
+            eventSink = null
+        }
     }
 
     @RequiresPermission(
@@ -161,7 +188,7 @@ class BleProximitySignalPlugin :
                     val deviceId =
                         call.argument<String>("deviceId")
                             ?: return result.error("invalid_args", "Missing 'deviceId'", null)
-                    val timeoutMs = call.argument<Int>("timeoutMs") ?: 8000
+                    val timeoutMs = call.argument<Int>("timeoutMs") ?: DEFAULT_DISCOVERY_TIMEOUT_MS
                     debugDiscoverServicesInternal(deviceId, timeoutMs, result)
                 }
 
@@ -169,7 +196,13 @@ class BleProximitySignalPlugin :
                     result.notImplemented()
                 }
             }
-        } catch (e: Throwable) {
+        } catch (e: SecurityException) {
+            result.error("permission_denied", e.message, null)
+        } catch (e: IllegalStateException) {
+            result.error("illegal_state", e.message, null)
+        } catch (e: IllegalArgumentException) {
+            result.error("invalid_args", e.message, null)
+        } catch (e: Exception) {
             result.error("native_error", e.message, e.toString())
         }
     }
@@ -186,6 +219,14 @@ class BleProximitySignalPlugin :
         serviceUuidStr: String,
         txPower: Int?,
     ) {
+        // Check runtime permissions on Android 12+
+        if (!checkBluetoothPermissions()) {
+            throw SecurityException(
+                "Missing Bluetooth permissions. On Android 12+, you need: " +
+                    "BLUETOOTH_ADVERTISE, BLUETOOTH_CONNECT, BLUETOOTH_SCAN",
+            )
+        }
+
         val adapter = bluetoothAdapter ?: throw IllegalStateException("Bluetooth not supported")
         if (!adapter.isEnabled) throw IllegalStateException("Bluetooth is off")
 
@@ -204,7 +245,7 @@ class BleProximitySignalPlugin :
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
                 .setConnectable(false)
                 .setTimeout(0)
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
+                .setTxPowerLevel(DEFAULT_TX_POWER)
 
         // Optional: map txPower hint crudely if given
         if (txPower != null) {
@@ -231,7 +272,7 @@ class BleProximitySignalPlugin :
         advertiseCallback =
             object : AdvertiseCallback() {
                 override fun onStartFailure(errorCode: Int) {
-                    eventSink?.error("advertise_failed", "Advertising failed: $errorCode", null)
+                    sendError("advertise_failed", "Advertising failed: $errorCode")
                 }
             }
 
@@ -244,8 +285,8 @@ class BleProximitySignalPlugin :
         val cb = advertiseCallback ?: return
         try {
             adv.stopAdvertising(cb)
-        } catch (_: Throwable) {
-            // ignore
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to stop advertising", e)
         } finally {
             advertiseCallback = null
         }
@@ -261,11 +302,19 @@ class BleProximitySignalPlugin :
         serviceUuidStr: String,
         debugAllowAll: Boolean,
     ) {
+        // Check runtime permissions on Android 12+
+        if (!checkBluetoothPermissions()) {
+            throw SecurityException(
+                "Missing Bluetooth permissions. On Android 12+, you need: " +
+                    "BLUETOOTH_ADVERTISE, BLUETOOTH_CONNECT, BLUETOOTH_SCAN",
+            )
+        }
+
         val adapter = bluetoothAdapter ?: throw IllegalStateException("Bluetooth not supported")
         if (!adapter.isEnabled) throw IllegalStateException("Bluetooth is off")
 
-        if (!debugAllowAll && targetTokens.size > 5) {
-            throw IllegalArgumentException("targetTokens must be <= 5")
+        if (!debugAllowAll && targetTokens.size > MAX_TARGET_TOKENS) {
+            throw IllegalArgumentException("targetTokens must be <= $MAX_TARGET_TOKENS")
         }
 
         stopScanInternal(resetState = false) // idempotent start
@@ -307,72 +356,20 @@ class BleProximitySignalPlugin :
                     result: ScanResult,
                 ) {
                     val record = result.scanRecord ?: return
+
+                    // Store discovered device for debug/discovery
                     result.device?.address?.let { address ->
                         discoveredDevices[address] = result.device
                     }
-                    val serviceData = record.getServiceData(parcelUuid)
-                    val tokenHexFromServiceData = serviceData?.let { bytesToHexLower(it) }
 
-                    val deviceId = result.device?.address
-                    val deviceName = result.device?.name
-                    val localName = record.deviceName
-                    val tokenHexFromLocalName =
-                        localName?.let { name ->
-                            runCatching { normalizeTokenToHex(name) }.getOrNull()
-                        }
-                    val tokenHex = tokenHexFromServiceData ?: tokenHexFromLocalName
-
-                    if (!debugAllowAll) {
-                        if (tokenHex == null || !targetTokenSet.contains(tokenHex)) return
+                    // Build and send payload (returns null if filtered out)
+                    buildScanPayload(result, record, parcelUuid)?.let { payload ->
+                        sendEvent(payload)
                     }
-
-                    val manufacturerDataLen = manufacturerDataLength(record)
-                    val manufacturerDataHex = manufacturerDataHex(record)
-                    val sd = record.serviceData
-                    val serviceDataLen = sd?.values?.sumOf { it.size } ?: 0
-                    val serviceDataUuids = sd?.keys?.map { it.uuid.toString() } ?: emptyList()
-                    val serviceDataHex =
-                        sd
-                            ?.entries
-                            ?.associate { entry ->
-                                entry.key.uuid.toString() to bytesToHexLower(entry.value)
-                            }.orEmpty()
-                    val serviceUuids =
-                        record.serviceUuids?.map { it.uuid.toString() } ?: emptyList()
-                    val targetToken = tokenHex ?: deviceId ?: localName ?: ""
-                    val localNameHex =
-                        localName?.let { bytesToHexLower(it.toByteArray(Charsets.UTF_8)) }
-
-                    val payload =
-                        hashMapOf<String, Any>(
-                            "targetToken" to targetToken,
-                            "rssi" to result.rssi,
-                            // Use epoch ms to match iOS and public contract.
-                            "timestampMs" to System.currentTimeMillis(),
-                        )
-                    deviceId?.let { payload["deviceId"] = it }
-                    deviceName?.let { payload["deviceName"] = it }
-                    localName?.let { payload["localName"] = it }
-                    localNameHex?.let { payload["localNameHex"] = it }
-                    manufacturerDataLen?.let { payload["manufacturerDataLen"] = it }
-                    manufacturerDataHex?.let { payload["manufacturerDataHex"] = it }
-                    if (serviceDataLen > 0) {
-                        payload["serviceDataLen"] = serviceDataLen
-                    }
-                    if (serviceDataUuids.isNotEmpty()) {
-                        payload["serviceDataUuids"] = serviceDataUuids
-                    }
-                    if (serviceDataHex.isNotEmpty()) {
-                        payload["serviceDataHex"] = serviceDataHex
-                    }
-                    if (serviceUuids.isNotEmpty()) {
-                        payload["serviceUuids"] = serviceUuids
-                    }
-                    eventSink?.success(payload)
                 }
 
                 override fun onScanFailed(errorCode: Int) {
-                    eventSink?.error("scan_failed", "Scan failed: $errorCode", null)
+                    sendError("scan_failed", "Scan failed: $errorCode")
                 }
             }
 
@@ -386,7 +383,8 @@ class BleProximitySignalPlugin :
         if (sc != null && cb != null) {
             try {
                 sc.stopScan(cb)
-            } catch (_: Throwable) {
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to stop scan", e)
             }
         }
         scanCallback = null
@@ -431,6 +429,17 @@ class BleProximitySignalPlugin :
         timeoutMs: Int,
         result: MethodChannel.Result,
     ) {
+        // Check runtime permissions on Android 12+
+        if (!checkBluetoothPermissions()) {
+            result.error(
+                "permission_denied",
+                "Missing Bluetooth permissions. On Android 12+, you need: " +
+                    "BLUETOOTH_ADVERTISE, BLUETOOTH_CONNECT, BLUETOOTH_SCAN",
+                null,
+            )
+            return
+        }
+
         if (pendingDiscovery != null) {
             result.error("busy", "Discovery already in progress", null)
             return
@@ -459,7 +468,12 @@ class BleProximitySignalPlugin :
                     status: Int,
                     newState: Int,
                 ) {
-                    if (pendingDiscovery?.gatt != gatt) return
+                    if (pendingDiscovery?.gatt != gatt) {
+                        // Orphaned connection - clean it up to prevent resource leak
+                        gatt.disconnect()
+                        gatt.close()
+                        return
+                    }
                     if (status != BluetoothGatt.GATT_SUCCESS) {
                         finishDiscoveryError("Connection failed: $status")
                         return
@@ -608,7 +622,7 @@ class BleProximitySignalPlugin :
                     else -> normalized
                 }
             Base64.getDecoder().decode(padded)
-        } catch (_: Throwable) {
+        } catch (_: Exception) {
             throw IllegalArgumentException("Invalid token format (expected hex or base64url/base64)")
         }
     }
@@ -632,5 +646,149 @@ class BleProximitySignalPlugin :
             sb.append(String.format("%02x", b))
         }
         return sb.toString()
+    }
+
+    /**
+     * Checks if all required Bluetooth permissions are granted.
+     * On Android 12+ (API 31+), runtime permissions are required:
+     * - BLUETOOTH_SCAN
+     * - BLUETOOTH_CONNECT
+     * - BLUETOOTH_ADVERTISE
+     *
+     * @return true if all required permissions are granted, false otherwise
+     */
+    private fun checkBluetoothPermissions(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val hasConnect =
+                applicationContext.checkSelfPermission(
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                ) == PackageManager.PERMISSION_GRANTED
+
+            val hasScan =
+                applicationContext.checkSelfPermission(
+                    Manifest.permission.BLUETOOTH_SCAN,
+                ) == PackageManager.PERMISSION_GRANTED
+
+            val hasAdvertise =
+                applicationContext.checkSelfPermission(
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                ) == PackageManager.PERMISSION_GRANTED
+
+            return hasConnect && hasScan && hasAdvertise
+        }
+        // No runtime permissions needed on Android < 12
+        return true
+    }
+
+    /**
+     * Thread-safe helper to send success events to Flutter.
+     * Ensures eventSink access is synchronized and events are posted on main thread.
+     *
+     * @param payload The event data to send
+     */
+    private fun sendEvent(payload: Map<String, Any>) {
+        val sink = synchronized(lock) { eventSink } ?: return
+        mainHandler.post {
+            sink.success(payload)
+        }
+    }
+
+    /**
+     * Thread-safe helper to send error events to Flutter.
+     * Ensures eventSink access is synchronized and errors are posted on main thread.
+     *
+     * @param code Error code
+     * @param message Error message
+     */
+    private fun sendError(
+        code: String,
+        message: String,
+    ) {
+        val sink = synchronized(lock) { eventSink } ?: return
+        mainHandler.post {
+            sink.error(code, message, null)
+        }
+    }
+
+    /**
+     * Builds scan result payload from ScanResult and ScanRecord.
+     * Applies token filtering if debugAllowAll is false.
+     *
+     * @param result The BLE scan result
+     * @param record The scan record containing advertising data
+     * @param parcelUuid The service UUID being scanned for
+     * @return Payload map to send to Flutter, or null if filtered out
+     */
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    private fun buildScanPayload(
+        result: ScanResult,
+        record: ScanRecord,
+        parcelUuid: ParcelUuid,
+    ): Map<String, Any>? {
+        // Extract token from service data or local name
+        val serviceData = record.getServiceData(parcelUuid)
+        val tokenHexFromServiceData = serviceData?.let { bytesToHexLower(it) }
+
+        val deviceId = result.device?.address
+        val deviceName = result.device?.name
+        val localName = record.deviceName
+        val tokenHexFromLocalName =
+            localName?.let { name ->
+                runCatching { normalizeTokenToHex(name) }.getOrNull()
+            }
+        val tokenHex = tokenHexFromServiceData ?: tokenHexFromLocalName
+
+        // Apply token filtering if not in debug mode
+        if (!debugAllowAll) {
+            if (tokenHex == null || !targetTokenSet.contains(tokenHex)) return null
+        }
+
+        // Extract metadata
+        val manufacturerDataLen = manufacturerDataLength(record)
+        val manufacturerDataHex = manufacturerDataHex(record)
+        val sd = record.serviceData
+        val serviceDataLen = sd?.values?.sumOf { it.size } ?: 0
+        val serviceDataUuids = sd?.keys?.map { it.uuid.toString() } ?: emptyList()
+        val serviceDataHex =
+            sd
+                ?.entries
+                ?.associate { entry ->
+                    entry.key.uuid.toString() to bytesToHexLower(entry.value)
+                }.orEmpty()
+        val serviceUuids =
+            record.serviceUuids?.map { it.uuid.toString() } ?: emptyList()
+        val targetToken = tokenHex ?: deviceId ?: localName ?: ""
+        val localNameHex =
+            localName?.let { bytesToHexLower(it.toByteArray(Charsets.UTF_8)) }
+
+        // Build payload
+        val payload =
+            hashMapOf<String, Any>(
+                "targetToken" to targetToken,
+                "rssi" to result.rssi,
+                "timestampMs" to System.currentTimeMillis(),
+            )
+
+        // Add optional fields
+        deviceId?.let { payload["deviceId"] = it }
+        deviceName?.let { payload["deviceName"] = it }
+        localName?.let { payload["localName"] = it }
+        localNameHex?.let { payload["localNameHex"] = it }
+        manufacturerDataLen?.let { payload["manufacturerDataLen"] = it }
+        manufacturerDataHex?.let { payload["manufacturerDataHex"] = it }
+        if (serviceDataLen > 0) {
+            payload["serviceDataLen"] = serviceDataLen
+        }
+        if (serviceDataUuids.isNotEmpty()) {
+            payload["serviceDataUuids"] = serviceDataUuids
+        }
+        if (serviceDataHex.isNotEmpty()) {
+            payload["serviceDataHex"] = serviceDataHex
+        }
+        if (serviceUuids.isNotEmpty()) {
+            payload["serviceUuids"] = serviceUuids
+        }
+
+        return payload
     }
 }
