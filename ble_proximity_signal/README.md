@@ -143,9 +143,13 @@ flutter run
 
 ---
 
-## Integration tests 🧪 (Fluttium)
+## Integration tests 🧪
 
-This repository uses [fluttium][fluttium_link] for integration tests (located in the example app).
+This package supports two integration testing tools in the example app:
+
+### Fluttium (Simple UI Tests)
+
+[Fluttium][fluttium_link] provides YAML-based declarative tests for quick UI smoke testing.
 
 Install the CLI: [fluttium_cli install guide][fluttium_install]
 
@@ -158,6 +162,32 @@ fluttium test flows/test_platform_name.yaml
 
 > Note: the provided flow is a UI smoke test for the example app.
 > If you change UI labels/buttons, update the flow steps accordingly.
+
+### Patrol (BLE Permission Tests)
+
+[Patrol][patrol_link] provides native automation capabilities, essential for testing **BLE permissions**.
+
+Install the CLI:
+
+```sh
+dart pub global activate patrol_cli
+```
+
+Run tests:
+
+```sh
+cd example
+
+# On simulator
+patrol test -t integration_test/patrol_test.dart -d "iPhone 17"
+
+# On real device (recommended for BLE)
+patrol test -t integration_test/patrol_test.dart
+```
+
+**Why both?** Fluttium is perfect for quick UI smoke tests, but cannot handle native permission dialogs. Patrol is used for comprehensive BLE testing including permission scenarios.
+
+See [INTEGRATION_TESTING.md](../INTEGRATION_TESTING.md) for a detailed comparison.
 
 ---
 
@@ -200,3 +230,4 @@ These require runtime permission prompts on modern Android.
 [very_good_ventures_link_light]: https://verygood.ventures/?utm_source=github&utm_medium=banner&utm_campaign=core#gh-light-mode-only
 [fluttium_link]: https://fluttium.dev/
 [fluttium_install]: https://fluttium.dev/docs/getting-started/installing-cli
+[patrol_link]: https://patrol.leancode.co/
