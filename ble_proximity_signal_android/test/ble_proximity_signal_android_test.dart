@@ -21,7 +21,7 @@ void main() {
         messenger.handlePlatformMessage(
           eventChannelName,
           methodCodec.encodeSuccessEnvelope(event),
-          (ByteData? _) {},
+          (_) {}
         ),
       );
     }
@@ -43,7 +43,7 @@ void main() {
       );
       messenger.setMockMessageHandler(
         eventChannelName,
-        (ByteData? message) async {
+        (message) async {
           final methodCall = methodCodec.decodeMethodCall(message);
           eventLog.add(methodCall);
           return methodCodec.encodeSuccessEnvelope(null);
