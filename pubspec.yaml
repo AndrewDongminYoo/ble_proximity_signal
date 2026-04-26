@@ -1,7 +1,7 @@
 name: ble_proximity_signal_root
 publish_to: none
 environment:
-  sdk: ^3.9.0
+  sdk: ^3.11.0
 workspace:
   - ble_proximity_signal_platform_interface
   - ble_proximity_signal
@@ -18,7 +18,7 @@ topics:
   - beacon
 
 dev_dependencies:
-  melos: ^7.5.0
+  melos: ^7.5.1
 
 melos:
   name: ble_proximity_signal

@@ -4,7 +4,7 @@ version: 0.1.0+1
 publish_to: none
 
 environment:
-  sdk: ^3.9.0
+  sdk: ^3.11.0
 
 dependencies:
   ble_proximity_signal:
@@ -24,8 +24,8 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
-  patrol: ^4.1.1
-  very_good_analysis: ^10.0.0
+  patrol: ^4.5.0
+  very_good_analysis: ^10.2.0
 
 flutter:
   uses-material-design: true
