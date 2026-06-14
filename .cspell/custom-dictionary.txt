@@ -1,14 +1,22 @@
 # Custom Dictionary Words
 AABB
+Automator
 CBUUID
+Dongmin
 fluttium
 gitmoji
 gsub
+ktlint
 millis
 noaudio
+objc
+Podfile
 RSSI
+simctl
 subosito
+swiftformat
 temurin
 xcprivacy
+xcrun
 xctrace
 xcuserdata
