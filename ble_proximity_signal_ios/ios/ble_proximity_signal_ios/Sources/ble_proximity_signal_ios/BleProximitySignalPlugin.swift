@@ -2,10 +2,37 @@ import CoreBluetooth
 import Flutter
 import UIKit
 
+/// Dedicated stream handler for the BLE availability event channel.
+///
+/// Kept separate from the plugin's scan-results stream handler so the two
+/// channels have independent sinks.
+private final class AvailabilityStreamHandler: NSObject, FlutterStreamHandler {
+    private(set) var sink: FlutterEventSink?
+    var onListenCallback: (() -> Void)?
+
+    func onListen(withArguments _: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        sink = events
+        onListenCallback?()
+        return nil
+    }
+
+    func onCancel(withArguments _: Any?) -> FlutterError? {
+        sink = nil
+        return nil
+    }
+
+    func send(_ value: String) {
+        sink?(value)
+    }
+}
+
 public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, CBCentralManagerDelegate, CBPeripheralDelegate, CBPeripheralManagerDelegate {
     private var methodChannel: FlutterMethodChannel?
     private var eventChannel: FlutterEventChannel?
+    private var availabilityChannel: FlutterEventChannel?
     private var eventSink: FlutterEventSink?
+    private let availabilityHandler = AvailabilityStreamHandler()
+    private var pendingPermissionResult: FlutterResult?
 
     private var central: CBCentralManager?
     private var peripheral: CBPeripheralManager?
@@ -39,12 +66,21 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
 
         let method = FlutterMethodChannel(name: "ble_proximity_signal", binaryMessenger: registrar.messenger())
         let events = FlutterEventChannel(name: "ble_proximity_signal/events", binaryMessenger: registrar.messenger())
+        let availability = FlutterEventChannel(name: "ble_proximity_signal/availability", binaryMessenger: registrar.messenger())
 
         instance.methodChannel = method
         instance.eventChannel = events
+        instance.availabilityChannel = availability
 
         registrar.addMethodCallDelegate(instance, channel: method)
         events.setStreamHandler(instance)
+
+        // Emit the current availability whenever a listener subscribes.
+        instance.availabilityHandler.onListenCallback = { [weak instance] in
+            instance?.ensureCentral()
+            instance?.emitAvailability()
+        }
+        availability.setStreamHandler(instance.availabilityHandler)
 
         // Managers are lazily created to keep init lightweight
     }
@@ -99,6 +135,15 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
                 let timeoutMs = args["timeoutMs"] as? Int ?? 8000
 
                 debugDiscoverServices(deviceId: deviceId, timeoutMs: timeoutMs, result: result)
+
+            case "checkPermissions":
+                result(currentAuthorizationWireName())
+
+            case "requestPermissions":
+                requestPermissions(result: result)
+
+            case "checkAvailability":
+                result(currentAvailabilityWireName())
 
             default:
                 result(FlutterError(code: "not_implemented", message: "Method not implemented", details: nil))
@@ -255,6 +300,10 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     // MARK: - CBCentralManagerDelegate
 
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        // Forward availability changes and settle any in-flight permission request.
+        emitAvailability()
+        resolvePendingPermissionIfNeeded()
+
         // If scanning was requested before BT became available, resume here
         if central.state == .poweredOn,
            let uuid = serviceUUID,
@@ -459,6 +508,96 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
         } else {
             print("Advertising started")
         }
+    }
+
+    // MARK: - Permissions + availability
+
+    /// Lazily creates the shared central manager (used for scanning, availability,
+    /// and as the trigger for the iOS authorization prompt).
+    private func ensureCentral() {
+        if central == nil {
+            central = CBCentralManager(delegate: self, queue: nil)
+        }
+    }
+
+    /// Maps `CBManager.authorization` to a Dart `BlePermissionStatus` wire name
+    /// without prompting the user.
+    private func currentAuthorizationWireName() -> String {
+        if #available(iOS 13.1, *) {
+            switch CBManager.authorization {
+            case .allowedAlways:
+                return "granted"
+            case .restricted:
+                return "restricted"
+            case .denied:
+                return "permanentlyDenied"
+            case .notDetermined:
+                return "notDetermined"
+            @unknown default:
+                return "denied"
+            }
+        }
+        // Pre-iOS 13.1 had no granular, non-prompting authorization surface for
+        // central usage; treat as granted.
+        return "granted"
+    }
+
+    /// Maps current authorization + adapter state to a `BleAvailability` wire name.
+    private func currentAvailabilityWireName() -> String {
+        if #available(iOS 13.1, *) {
+            switch CBManager.authorization {
+            case .denied, .restricted:
+                return "unauthorized"
+            default:
+                break
+            }
+        }
+        guard let central = central else {
+            // No manager yet; create one so future availability events can report.
+            ensureCentral()
+            return "unknown"
+        }
+        switch central.state {
+        case .poweredOn:
+            return "ready"
+        case .poweredOff:
+            return "poweredOff"
+        case .unsupported:
+            return "unsupported"
+        case .unauthorized:
+            return "unauthorized"
+        default:
+            return "unknown"
+        }
+    }
+
+    /// Requests Bluetooth authorization. On iOS the prompt is triggered implicitly
+    /// by instantiating the central manager; the result is delivered once
+    /// `centralManagerDidUpdateState` reports a determined authorization.
+    private func requestPermissions(result: @escaping FlutterResult) {
+        let auth = currentAuthorizationWireName()
+        if auth != "notDetermined" {
+            result(auth)
+            return
+        }
+        if pendingPermissionResult != nil {
+            result(FlutterError(code: "busy", message: "A permission request is already in progress", details: nil))
+            return
+        }
+        pendingPermissionResult = result
+        ensureCentral()
+    }
+
+    private func resolvePendingPermissionIfNeeded() {
+        guard let pending = pendingPermissionResult else { return }
+        let auth = currentAuthorizationWireName()
+        guard auth != "notDetermined" else { return }
+        pendingPermissionResult = nil
+        pending(auth)
+    }
+
+    private func emitAvailability() {
+        availabilityHandler.send(currentAvailabilityWireName())
     }
 
     // MARK: - Token helpers

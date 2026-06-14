@@ -24,6 +24,24 @@ class BleProximitySignal {
   /// Debug: raw scan stream from native (no smoothing or hysteresis).
   Stream<RawScanResult> get rawScanResults => _rawStream;
 
+  /// Continuous stream of BLE availability changes (Bluetooth toggled on/off,
+  /// authorization changed, etc.).
+  Stream<BleAvailability> get availabilityChanges => _platform.availabilityChanges;
+
+  /// Returns the current Bluetooth permission status without prompting.
+  Future<BlePermissionStatus> checkPermissions() => _platform.checkPermissions();
+
+  /// Requests the Bluetooth permissions required for scanning/advertising.
+  ///
+  /// Completes once the user has responded (or immediately if already
+  /// determined). Call this before [startScan]/[startBroadcast] on platforms
+  /// that require runtime permissions.
+  Future<BlePermissionStatus> requestPermissions() => _platform.requestPermissions();
+
+  /// Returns whether BLE can currently be used (power + support + authorization)
+  /// without prompting.
+  Future<BleAvailability> checkAvailability() => _platform.checkAvailability();
+
   /// Debug: buffered raw scan log (latest N entries).
   ///
   /// Each listener gets its own buffer. Defaults to 20 entries.

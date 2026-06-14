@@ -10,6 +10,8 @@ class MethodChannelBleProximitySignal extends BleProximitySignalPlatform {
 
   static const EventChannel _eventChannel = EventChannel('ble_proximity_signal/events');
 
+  static const EventChannel _availabilityChannel = EventChannel('ble_proximity_signal/availability');
+
   @override
   Stream<RawScanResult> get scanResults =>
       _eventChannel.receiveBroadcastStream().map((event) => RawScanResult.fromMap(_castEvent(event)));
@@ -66,6 +68,29 @@ class MethodChannelBleProximitySignal extends BleProximitySignalPlatform {
     );
     return result ?? '';
   }
+
+  @override
+  Future<BlePermissionStatus> checkPermissions() async {
+    final result = await methodChannel.invokeMethod<String>('checkPermissions');
+    return BlePermissionStatus.fromWireName(result);
+  }
+
+  @override
+  Future<BlePermissionStatus> requestPermissions() async {
+    final result = await methodChannel.invokeMethod<String>('requestPermissions');
+    return BlePermissionStatus.fromWireName(result);
+  }
+
+  @override
+  Future<BleAvailability> checkAvailability() async {
+    final result = await methodChannel.invokeMethod<String>('checkAvailability');
+    return BleAvailability.fromWireName(result);
+  }
+
+  @override
+  Stream<BleAvailability> get availabilityChanges => _availabilityChannel
+      .receiveBroadcastStream()
+      .map((event) => BleAvailability.fromWireName(event as String?));
 }
 
 Map<Object?, Object?> _castEvent(Object? event) {
