@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- Add `checkPermissions`, `requestPermissions`, and `checkAvailability` plus an
+  `availabilityChanges` stream to `BleProximitySignal`.
+- Re-export `BleAvailability` and `BlePermissionStatus`.
+
 ## 0.1.0+1
 
 - Initial release.
