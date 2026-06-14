@@ -40,7 +40,10 @@ jobs:
 
   android:
     if: ${{ !contains(fromJSON('["dependabot[bot]", "renovate[bot]", "snyk-bot", "allcontributors[bot]"]'), github.actor) }}
-    runs-on: macos-latest
+    # Intel runner: the x86_64 AVD images used by android-emulator-runner cannot
+    # boot on the Apple Silicon (ARM) macos-latest runners (adb fails to connect
+    # to port 5554 immediately). macos-13 is the last Intel macOS image.
+    runs-on: macos-13
 
     defaults:
       run:
