@@ -21,8 +21,8 @@ on:
 jobs:
   build:
     if: ${{ !contains(fromJSON('["dependabot[bot]", "renovate[bot]", "snyk-bot", "allcontributors[bot]"]'), github.actor) }}
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@v1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@c2e27845f65775943bc310b3ab89e5c5432b8d4d # v1.19.2
     with:
-      flutter_version: 3.35.0
+      flutter_version: 3.44.1
       format_line_length: 120
       working_directory: ble_proximity_signal_platform_interface

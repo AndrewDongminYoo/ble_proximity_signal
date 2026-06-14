@@ -21,7 +21,7 @@ on:
 jobs:
   spell-check:
     if: ${{ !contains(fromJSON('["dependabot[bot]", "renovate[bot]", "snyk-bot", "allcontributors[bot]"]'), github.actor) }}
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@c2e27845f65775943bc310b3ab89e5c5432b8d4d # v1.19.2
     with:
       config: cspell.json
       includes: |
@@ -32,9 +32,9 @@ jobs:
 
   build:
     if: ${{ !contains(fromJSON('["dependabot[bot]", "renovate[bot]", "snyk-bot", "allcontributors[bot]"]'), github.actor) }}
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@v1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@c2e27845f65775943bc310b3ab89e5c5432b8d4d # v1.19.2
     with:
-      flutter_version: 3.35.0
+      flutter_version: 3.44.1
       format_line_length: 120
       working_directory: ble_proximity_signal
 
@@ -47,19 +47,19 @@ jobs:
         working-directory: ble_proximity_signal/example
 
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-java@v5
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
           distribution: temurin
           java-version: "11"
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
 
       - name: Install Fluttium
         run: flutter pub global activate fluttium_cli
 
       - name: AVD Cache
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         id: avd-cache
         with:
           path: |
@@ -69,7 +69,7 @@ jobs:
 
       - name: Cache AVD Snapshot
         if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
         with:
           api-level: 29
           force-avd-creation: false
@@ -78,7 +78,7 @@ jobs:
           script: echo "Generated AVD snapshot for caching."
 
       - name: E2E Tests
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
         with:
           api-level: 29
           script: fluttium test flows/test_platform_name.yaml -d android
@@ -93,9 +93,9 @@ jobs:
         working-directory: ble_proximity_signal/example
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
 
       - name: Install Fluttium
         run: flutter pub global activate fluttium_cli
