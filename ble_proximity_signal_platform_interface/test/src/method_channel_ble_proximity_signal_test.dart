@@ -1,5 +1,4 @@
 import 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_platform_interface.dart';
-import 'package:ble_proximity_signal_platform_interface/src/method_channel_ble_proximity_signal.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 

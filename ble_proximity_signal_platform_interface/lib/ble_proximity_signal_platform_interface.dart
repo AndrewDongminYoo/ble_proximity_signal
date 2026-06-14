@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:ble_proximity_signal_platform_interface/src/method_channel_ble_proximity_signal.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
+export 'package:ble_proximity_signal_platform_interface/src/method_channel_ble_proximity_signal.dart'
+    show MethodChannelBleProximitySignal;
+
 /// Configuration for broadcasting messages or events.
 class BroadcastConfig {
   /// Configuration for broadcasting messages or events.
