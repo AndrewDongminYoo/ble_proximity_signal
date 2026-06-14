@@ -33,6 +33,13 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     private var eventSink: FlutterEventSink?
     private let availabilityHandler = AvailabilityStreamHandler()
     private var pendingPermissionResult: FlutterResult?
+    private var pendingPermissionTimeout: DispatchWorkItem?
+
+    /// Seconds to wait for the system Bluetooth authorization dialog before
+    /// failing the in-flight `requestPermissions` call. A timeout is required
+    /// because iOS will not call `centralManagerDidUpdateState` if the user
+    /// dismisses the dialog by force-quitting or backgrounding the app.
+    private static let permissionRequestTimeoutSeconds: TimeInterval = 30
 
     private var central: CBCentralManager?
     private var peripheral: CBPeripheralManager?
@@ -543,6 +550,11 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     }
 
     /// Maps current authorization + adapter state to a `BleAvailability` wire name.
+    ///
+    /// Read-only: never instantiates `CBCentralManager`. Instantiating the manager
+    /// when authorization is `.notDetermined` triggers the iOS Bluetooth permission
+    /// dialog, which would violate the platform interface contract that
+    /// `checkAvailability()` reports state "without prompting the user".
     private func currentAvailabilityWireName() -> String {
         if #available(iOS 13.1, *) {
             switch CBManager.authorization {
@@ -553,8 +565,6 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
             }
         }
         guard let central = central else {
-            // No manager yet; create one so future availability events can report.
-            ensureCentral()
             return "unknown"
         }
         switch central.state {
@@ -574,6 +584,10 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     /// Requests Bluetooth authorization. On iOS the prompt is triggered implicitly
     /// by instantiating the central manager; the result is delivered once
     /// `centralManagerDidUpdateState` reports a determined authorization.
+    ///
+    /// A timeout guards against the delegate callback never firing (e.g. the user
+    /// force-quits the app while the dialog is visible) so the Dart future
+    /// always resolves.
     private func requestPermissions(result: @escaping FlutterResult) {
         let auth = currentAuthorizationWireName()
         if auth != "notDetermined" {
@@ -585,6 +599,16 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
             return
         }
         pendingPermissionResult = result
+
+        let timeout = DispatchWorkItem { [weak self] in
+            self?.failPendingPermissionWithTimeout()
+        }
+        pendingPermissionTimeout = timeout
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + BleProximitySignalPlugin.permissionRequestTimeoutSeconds,
+            execute: timeout
+        )
+
         ensureCentral()
     }
 
@@ -592,8 +616,23 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
         guard let pending = pendingPermissionResult else { return }
         let auth = currentAuthorizationWireName()
         guard auth != "notDetermined" else { return }
+        pendingPermissionTimeout?.cancel()
+        pendingPermissionTimeout = nil
         pendingPermissionResult = nil
         pending(auth)
+    }
+
+    private func failPendingPermissionWithTimeout() {
+        guard let pending = pendingPermissionResult else { return }
+        pendingPermissionTimeout = nil
+        pendingPermissionResult = nil
+        pending(
+            FlutterError(
+                code: "timeout",
+                message: "Bluetooth permission request did not complete in time",
+                details: nil
+            )
+        )
     }
 
     private func emitAvailability() {
