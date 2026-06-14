@@ -142,35 +142,35 @@ import 'package:patrol/patrol.dart';
 
 void main() {
   patrolTest(
-    'Permission Request and Basic UI Testing',
-    ($) async {
-      await $.pumpWidgetAndSettle(const MyApp());
+   'Permission Request and Basic UI Testing',
+   ($) async {
+     await $.pumpWidgetAndSettle(const MyApp());
 
-      // Verify UI elements
-      expect(find.text('Metal Detector'), findsWidgets);
+     // Verify UI elements
+     expect(find.text('Metal Detector'), findsWidgets);
 
-      // Enter token
-      await $.enterText(find.byKey(const Key('target_token_field')), 'test1234');
+     // Enter token
+     await $.enterText(find.byKey(const Key('target_token_field')), 'test1234');
 
-      // Tap scan button
-      await $.tap(find.byKey(const Key('target_scan_button')));
+     // Tap scan button
+     await $.tap(find.byKey(const Key('target_scan_button')));
 
-      // ✅ Handle native permission dialog!
-      try {
-        if (await $.platformAutomator.mobile.isPermissionDialogVisible(
-          timeout: const Duration(seconds: 2),
-        )) {
-          await $.platformAutomator.mobile.grantPermissionWhenInUse();
-        }
-      } catch (e) {
-        debugPrint('Permission: $e');
-      }
+     // ✅ Handle native permission dialog!
+     try {
+       if (await $.platformAutomator.mobile.isPermissionDialogVisible(
+         timeout: const Duration(seconds: 2),
+       )) {
+         await $.platformAutomator.mobile.grantPermissionWhenInUse();
+       }
+     } catch (e) {
+       debugPrint('Permission: $e');
+     }
 
-      // Verify scan started
-      if (find.text('Stop Scan').evaluate().isNotEmpty) {
-        await $.tap(find.byKey(const Key('target_scan_button')));
-      }
-    },
+     // Verify scan started
+     if (find.text('Stop Scan').evaluate().isNotEmpty) {
+       await $.tap(find.byKey(const Key('target_scan_button')));
+     }
+   },
   );
 }
 ```
@@ -299,18 +299,18 @@ Keep Fluttium for:
 
 ### Test Strategy
 
-```
+```log
 Fluttium (Simple/Fast)
 ├── flows/test_platform_name.yaml    ← Basic UI smoke test
 └── flows/test_scan_toggle.yaml      ← Scan on/off toggle test
 
 Patrol (Complex/Thorough)
 └── integration_test/
-    └── patrol_test.dart              ← Full BLE permission & scenario tests
-        ├── Permission request & grant
-        ├── Debug mode device discovery
-        ├── Proximity level verification
-        └── Empty token validation
+   └── patrol_test.dart              ← Full BLE permission & scenario tests
+       ├── Permission request & grant
+       ├── Debug mode device discovery
+       ├── Proximity level verification
+       └── Empty token validation
 ```
 
 ## Current Test Results
@@ -340,42 +340,44 @@ Test summary:
 ### Patrol Best Practices
 
 1. **Always use `$.pumpWidgetAndSettle(const MyApp())`**
-   - Never call `app.main()` directly in tests
-   - Each test should pump a fresh widget tree
+
+- Never call `app.main()` directly in tests
+- Each test should pump a fresh widget tree
 
 2. **Use `findsWidgets` when widget duplication is possible**
 
-   ```dart
-   expect(find.text('Metal Detector'), findsWidgets); // ✅
-   expect(find.text('Metal Detector'), findsOneWidget); // ❌ May fail
-   ```
+```dart
+expect(find.text('Metal Detector'), findsWidgets); // ✅
+expect(find.text('Metal Detector'), findsOneWidget); // ❌ May fail
+```
 
 3. **Handle permissions gracefully**
 
-   ```dart
-   try {
-     if (await $.platformAutomator.mobile.isPermissionDialogVisible(
-       timeout: const Duration(seconds: 2),
-     )) {
-       await $.platformAutomator.mobile.grantPermissionWhenInUse();
-     }
-   } catch (e) {
-     // Permission already granted or simulator limitation
-     debugPrint('Permission: $e');
-   }
-   ```
+```dart
+try {
+  if (await $.platformAutomator.mobile.isPermissionDialogVisible(
+    timeout: const Duration(seconds: 2),
+  )) {
+    await $.platformAutomator.mobile.grantPermissionWhenInUse();
+  }
+} catch (e) {
+  // Permission already granted or simulator limitation
+  debugPrint('Permission: $e');
+}
+```
 
 4. **Check widget existence before interacting**
 
-   ```dart
-   if (find.text('Stop Scan').evaluate().isNotEmpty) {
-     await $.tap(find.byKey(const Key('target_scan_button')));
-   }
-   ```
+```dart
+if (find.text('Stop Scan').evaluate().isNotEmpty) {
+  await $.tap(find.byKey(const Key('target_scan_button')));
+}
+```
 
 5. **Test on real devices for BLE**
-   - Simulators don't have real Bluetooth hardware
-   - Permission dialogs may not appear on simulators
+
+- Simulators don't have real Bluetooth hardware
+- Permission dialogs may not appear on simulators
 
 ### Fluttium Best Practices
 
@@ -394,7 +396,7 @@ Test summary:
 
 **Symptoms:**
 
-```
+```log
 PlatformException(illegal_state, Bluetooth not supported, null)
 ```
 
@@ -408,26 +410,28 @@ PlatformException(illegal_state, Bluetooth not supported, null)
 **Workaround:**
 
 1. **For Android BLE Testing:**
-   - Use **real Android devices** (not emulators)
-   - Manual testing for BLE-specific features
-   - Document expected behavior
+
+- Use **real Android devices** (not emulators)
+- Manual testing for BLE-specific features
+- Document expected behavior
 
 2. **For Automated Testing:**
-   - Run non-BLE UI tests on emulators
-   - Run full BLE tests on real devices only
-   - Consider mocking BLE layer for unit tests
+
+- Run non-BLE UI tests on emulators
+- Run full BLE tests on real devices only
+- Consider mocking BLE layer for unit tests
 
 3. **Test Strategy:**
 
-   ```bash
-   # iOS: Full BLE tests (simulator supports BLE APIs)
-   patrol test -t integration_test/patrol_test.dart -d "iPhone 17"
+```bash
+# iOS: Full BLE tests (simulator supports BLE APIs)
+patrol test -t integration_test/patrol_test.dart -d "iPhone 17"
 
-   # Android: Run on real device only
-   patrol test -t integration_test/patrol_test.dart -d <real-device-id>
+# Android: Run on real device only
+patrol test -t integration_test/patrol_test.dart -d <real-device-id>
 
-   # Android Emulator: Skip BLE tests or expect graceful failures
-   ```
+# Android Emulator: Skip BLE tests or expect graceful failures
+```
 
 **Current Status:**
 
