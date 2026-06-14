@@ -397,5 +397,15 @@ abstract class BleProximitySignalPlatform extends PlatformInterface {
 
   /// Continuous stream of [BleAvailability] changes (e.g. Bluetooth toggled
   /// on/off, authorization changed).
+  ///
+  /// Behavior notes:
+  /// - On iOS, the first subscription may trigger the system Bluetooth
+  ///   authorization dialog because observing state requires instantiating a
+  ///   `CBCentralManager`. Use [checkAvailability] for a strictly non-prompting
+  ///   snapshot.
+  /// - The stream emits the current state when the underlying platform sink is
+  ///   first attached, but it does not replay the last value to subscribers
+  ///   that attach later. Late subscribers should call [checkAvailability] to
+  ///   obtain the current snapshot.
   Stream<BleAvailability> get availabilityChanges;
 }
