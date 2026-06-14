@@ -726,10 +726,10 @@ class BleProximitySignalPlugin :
 
     /**
      * Checks if all required Bluetooth permissions are granted.
-     * On Android 12+ (API 31+), runtime permissions are required:
-     * - BLUETOOTH_SCAN
-     * - BLUETOOTH_CONNECT
-     * - BLUETOOTH_ADVERTISE
+     *
+     * - Android 12+ (API 31+): BLUETOOTH_SCAN, BLUETOOTH_CONNECT, BLUETOOTH_ADVERTISE.
+     * - Android 6-11 (API 23-30): BLE scanning requires ACCESS_FINE_LOCATION at
+     *   runtime. minSdk for this plugin is 26, so API 26-30 all share this path.
      *
      * @return true if all required permissions are granted, false otherwise
      */
@@ -752,8 +752,10 @@ class BleProximitySignalPlugin :
 
             return hasConnect && hasScan && hasAdvertise
         }
-        // No runtime permissions needed on Android < 12
-        return true
+        // API 23-30: ACCESS_FINE_LOCATION is required at runtime for BLE scanning.
+        return applicationContext.checkSelfPermission(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     // ----------------------------
@@ -767,14 +769,11 @@ class BleProximitySignalPlugin :
      * Requests the Bluetooth runtime permissions and resolves [result] once the
      * user has responded (via [onRequestPermissionsResult]).
      *
-     * On Android < 12 there are no runtime Bluetooth permissions, so this resolves
-     * immediately as granted.
+     * The permission set depends on the platform:
+     * - API 31+: BLUETOOTH_SCAN, BLUETOOTH_CONNECT, BLUETOOTH_ADVERTISE.
+     * - API 26-30: ACCESS_FINE_LOCATION (required at runtime for BLE scanning).
      */
     private fun requestPermissionsInternal(result: MethodChannel.Result) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            result.success("granted")
-            return
-        }
         if (checkBluetoothPermissions()) {
             result.success("granted")
             return
@@ -793,15 +792,17 @@ class BleProximitySignalPlugin :
             return
         }
         pendingPermissionResult = result
-        ActivityCompat.requestPermissions(
-            act,
-            arrayOf(
-                Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_ADVERTISE,
-            ),
-            PERMISSION_REQUEST_CODE,
-        )
+        val permissions =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                arrayOf(
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                )
+            } else {
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        ActivityCompat.requestPermissions(act, permissions, PERMISSION_REQUEST_CODE)
     }
 
     override fun onRequestPermissionsResult(
