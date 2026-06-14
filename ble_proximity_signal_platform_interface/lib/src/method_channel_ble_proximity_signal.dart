@@ -88,9 +88,8 @@ class MethodChannelBleProximitySignal extends BleProximitySignalPlatform {
   }
 
   @override
-  Stream<BleAvailability> get availabilityChanges => _availabilityChannel
-      .receiveBroadcastStream()
-      .map((event) => BleAvailability.fromWireName(event as String?));
+  Stream<BleAvailability> get availabilityChanges =>
+      _availabilityChannel.receiveBroadcastStream().map((event) => BleAvailability.fromWireName(event as String?));
 }
 
 Map<Object?, Object?> _castEvent(Object? event) {

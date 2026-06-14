@@ -9,8 +9,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 class FakeBleProximitySignalPlatform extends BleProximitySignalPlatform {
   final StreamController<RawScanResult> _controller = StreamController<RawScanResult>.broadcast(sync: true);
-  final StreamController<BleAvailability> _availabilityController =
-      StreamController<BleAvailability>.broadcast(sync: true);
+  final StreamController<BleAvailability> _availabilityController = StreamController<BleAvailability>.broadcast(
+    sync: true,
+  );
   String? lastBroadcastToken;
   BroadcastConfig? lastBroadcastConfig;
   List<String>? lastScanTokens;
