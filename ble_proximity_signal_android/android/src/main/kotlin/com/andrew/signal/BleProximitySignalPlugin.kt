@@ -834,6 +834,10 @@ class BleProximitySignalPlugin :
                 }
             }
         result.success(status)
+        // Authorization just changed; push the new availability so subscribers to
+        // availabilityChanges see ready/unauthorized without waiting for an adapter
+        // ACTION_STATE_CHANGED broadcast or a resubscribe.
+        sendAvailability(computeAvailability())
         return true
     }
 
