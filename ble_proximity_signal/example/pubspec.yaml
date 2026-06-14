@@ -6,6 +6,8 @@ publish_to: none
 environment:
   sdk: ^3.11.0
 
+resolution: workspace
+
 dependencies:
   ble_proximity_signal:
     # When depending on this package from a real application you should use:
