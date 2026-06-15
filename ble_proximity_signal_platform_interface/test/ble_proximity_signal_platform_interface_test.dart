@@ -36,6 +36,18 @@ class BleProximitySignalMock extends BleProximitySignalPlatform {
     return 'ok';
   }
 
+  @override
+  Future<BlePermissionStatus> checkPermissions() async => BlePermissionStatus.granted;
+
+  @override
+  Future<BlePermissionStatus> requestPermissions() async => BlePermissionStatus.granted;
+
+  @override
+  Future<BleAvailability> checkAvailability() async => BleAvailability.ready;
+
+  @override
+  Stream<BleAvailability> get availabilityChanges => const Stream<BleAvailability>.empty();
+
   Future<void> dispose() => _controller.close();
 }
 

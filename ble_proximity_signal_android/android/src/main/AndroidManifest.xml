@@ -2,4 +2,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"/>
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <!-- Required for BLE scanning on Android 6-11 (API 23-30); Android 12+
+         uses BLUETOOTH_SCAN with usesPermissionFlags="neverForLocation" instead. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30"/>
 </manifest>

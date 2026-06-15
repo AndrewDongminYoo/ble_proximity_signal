@@ -18,11 +18,7 @@ void main() {
 
     void sendEvent(Object? event) {
       unawaited(
-        messenger.handlePlatformMessage(
-          eventChannelName,
-          methodCodec.encodeSuccessEnvelope(event),
-          (_) {}
-        ),
+        messenger.handlePlatformMessage(eventChannelName, methodCodec.encodeSuccessEnvelope(event), (_) {}),
       );
     }
 

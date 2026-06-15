@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:ble_proximity_signal_platform_interface/src/method_channel_ble_proximity_signal.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
+export 'package:ble_proximity_signal_platform_interface/src/method_channel_ble_proximity_signal.dart'
+    show MethodChannelBleProximitySignal;
+
 /// Configuration for broadcasting messages or events.
 class BroadcastConfig {
   /// Configuration for broadcasting messages or events.
@@ -250,6 +253,67 @@ class RawScanResult {
   }
 }
 
+/// Whether BLE can currently be used by the app.
+enum BleAvailability {
+  /// Bluetooth is powered on, authorized, and ready to scan/advertise.
+  ready,
+
+  /// Bluetooth is supported but currently turned off by the user/system.
+  poweredOff,
+
+  /// The app is not authorized to use Bluetooth (permission denied/restricted).
+  unauthorized,
+
+  /// This device does not support Bluetooth Low Energy.
+  unsupported,
+
+  /// State is not yet known (e.g. the adapter is resetting or initializing).
+  unknown;
+
+  /// Parses a platform wire string into a [BleAvailability], defaulting to
+  /// [BleAvailability.unknown] for null/unrecognized values.
+  static BleAvailability fromWireName(String? name) => switch (name) {
+    'ready' => BleAvailability.ready,
+    'poweredOff' => BleAvailability.poweredOff,
+    'unauthorized' => BleAvailability.unauthorized,
+    'unsupported' => BleAvailability.unsupported,
+    _ => BleAvailability.unknown,
+  };
+}
+
+/// Runtime permission status for the Bluetooth permissions the plugin requires.
+///
+/// Note: [BlePermissionStatus.permanentlyDenied] is only distinguishable on
+/// Android after a request (it needs the Activity's rationale state), so
+/// `checkPermissions()` on Android reports [BlePermissionStatus.denied] instead.
+enum BlePermissionStatus {
+  /// All required permissions are granted.
+  granted,
+
+  /// At least one required permission is denied but may be requested again.
+  denied,
+
+  /// Permission denied permanently; the user must enable it in system settings.
+  permanentlyDenied,
+
+  /// Access is restricted by device policy (iOS `.restricted`).
+  restricted,
+
+  /// The user has not been asked yet (iOS `.notDetermined`).
+  notDetermined;
+
+  /// Parses a platform wire string into a [BlePermissionStatus], defaulting to
+  /// [BlePermissionStatus.denied] for null/unrecognized values.
+  static BlePermissionStatus fromWireName(String? name) => switch (name) {
+    'granted' => BlePermissionStatus.granted,
+    'denied' => BlePermissionStatus.denied,
+    'permanentlyDenied' => BlePermissionStatus.permanentlyDenied,
+    'restricted' => BlePermissionStatus.restricted,
+    'notDetermined' => BlePermissionStatus.notDetermined,
+    _ => BlePermissionStatus.denied,
+  };
+}
+
 /// {@template ble_proximity_signal_platform}
 /// The interface that implementations of ble_proximity_signal must implement.
 ///
@@ -313,4 +377,35 @@ abstract class BleProximitySignalPlatform extends PlatformInterface {
   ///
   /// Dart-side will do smoothing/threshold/intensity mapping.
   Stream<RawScanResult> get scanResults;
+
+  /// Returns the current Bluetooth permission status without prompting the user.
+  ///
+  /// On Android this reflects runtime permission grants; on iOS it reads the
+  /// non-prompting `CBManager.authorization` value.
+  Future<BlePermissionStatus> checkPermissions();
+
+  /// Requests the Bluetooth permissions required for scanning/advertising.
+  ///
+  /// The returned future completes once the user has responded (or immediately
+  /// if the status is already determined). On iOS the prompt is triggered by
+  /// the system the first time a Bluetooth manager is used.
+  Future<BlePermissionStatus> requestPermissions();
+
+  /// Returns whether BLE can currently be used (power + support + authorization)
+  /// without prompting the user.
+  Future<BleAvailability> checkAvailability();
+
+  /// Continuous stream of [BleAvailability] changes (e.g. Bluetooth toggled
+  /// on/off, authorization changed).
+  ///
+  /// Behavior notes:
+  /// - On iOS, the first subscription may trigger the system Bluetooth
+  ///   authorization dialog because observing state requires instantiating a
+  ///   `CBCentralManager`. Use [checkAvailability] for a strictly non-prompting
+  ///   snapshot.
+  /// - The stream emits the current state when the underlying platform sink is
+  ///   first attached, but it does not replay the last value to subscribers
+  ///   that attach later. Late subscribers should call [checkAvailability] to
+  ///   obtain the current snapshot.
+  Stream<BleAvailability> get availabilityChanges;
 }

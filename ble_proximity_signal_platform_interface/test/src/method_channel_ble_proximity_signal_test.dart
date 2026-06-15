@@ -1,5 +1,4 @@
 import 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_platform_interface.dart';
-import 'package:ble_proximity_signal_platform_interface/src/method_channel_ble_proximity_signal.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -154,6 +153,87 @@ void main() {
             },
           ),
         ],
+      );
+    });
+
+    test('checkPermissions maps the platform string and invokes the channel', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        methodChannelBleProximitySignal.methodChannel,
+        (methodCall) async {
+          log.add(methodCall);
+          return 'granted';
+        },
+      );
+
+      final status = await methodChannelBleProximitySignal.checkPermissions();
+
+      expect(status, BlePermissionStatus.granted);
+      expect(log, <Matcher>[isMethodCall('checkPermissions', arguments: null)]);
+    });
+
+    test('requestPermissions maps the platform string and invokes the channel', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        methodChannelBleProximitySignal.methodChannel,
+        (methodCall) async {
+          log.add(methodCall);
+          return 'permanentlyDenied';
+        },
+      );
+
+      final status = await methodChannelBleProximitySignal.requestPermissions();
+
+      expect(status, BlePermissionStatus.permanentlyDenied);
+      expect(log, <Matcher>[isMethodCall('requestPermissions', arguments: null)]);
+    });
+
+    test('checkAvailability maps the platform string and invokes the channel', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        methodChannelBleProximitySignal.methodChannel,
+        (methodCall) async {
+          log.add(methodCall);
+          return 'poweredOff';
+        },
+      );
+
+      final availability = await methodChannelBleProximitySignal.checkAvailability();
+
+      expect(availability, BleAvailability.poweredOff);
+      expect(log, <Matcher>[isMethodCall('checkAvailability', arguments: null)]);
+    });
+
+    test('permission/availability mappings fall back for unknown strings', () async {
+      expect(BlePermissionStatus.fromWireName(null), BlePermissionStatus.denied);
+      expect(BlePermissionStatus.fromWireName('bogus'), BlePermissionStatus.denied);
+      expect(BleAvailability.fromWireName(null), BleAvailability.unknown);
+      expect(BleAvailability.fromWireName('bogus'), BleAvailability.unknown);
+    });
+
+    test('availabilityChanges maps event channel strings', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockStreamHandler(
+        const EventChannel('ble_proximity_signal/availability'),
+        MockStreamHandler.inline(
+          onListen: (arguments, events) {
+            events
+              ..success('poweredOff')
+              ..success('ready');
+            events.endOfStream();
+          },
+        ),
+      );
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockStreamHandler(
+          const EventChannel('ble_proximity_signal/availability'),
+          null,
+        );
+      });
+
+      await expectLater(
+        methodChannelBleProximitySignal.availabilityChanges,
+        emitsInOrder(<Matcher>[
+          equals(BleAvailability.poweredOff),
+          equals(BleAvailability.ready),
+          emitsDone,
+        ]),
       );
     });
 

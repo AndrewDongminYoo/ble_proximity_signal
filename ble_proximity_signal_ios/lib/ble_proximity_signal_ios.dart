@@ -1,81 +1,13 @@
 import 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_platform_interface.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 
 /// The iOS implementation of [BleProximitySignalPlatform].
-class BleProximitySignalIOS extends BleProximitySignalPlatform {
-  /// The method channel used to interact with the native platform.
-  @visibleForTesting
-  final methodChannel = const MethodChannel('ble_proximity_signal');
-
-  static const EventChannel _eventChannel = EventChannel('ble_proximity_signal/events');
-
-  /// Registers this class as the default instance of [BleProximitySignalPlatform]
+///
+/// The method/event channel behavior is identical to the default
+/// [MethodChannelBleProximitySignal]; this subclass only exists so the
+/// federated plugin can register an iOS-specific instance.
+class BleProximitySignalIOS extends MethodChannelBleProximitySignal {
+  /// Registers this class as the default instance of [BleProximitySignalPlatform].
   static void registerWith() {
     BleProximitySignalPlatform.instance = BleProximitySignalIOS();
   }
-
-  @override
-  Stream<RawScanResult> get scanResults =>
-      _eventChannel.receiveBroadcastStream().map((event) => RawScanResult.fromMap(_castEvent(event)));
-
-  @override
-  Future<void> startBroadcast({
-    required String token,
-    BroadcastConfig config = const BroadcastConfig(),
-  }) {
-    return methodChannel.invokeMethod<void>(
-      'startBroadcast',
-      <String, Object?>{
-        'token': token,
-        ...config.toMap(),
-      },
-    );
-  }
-
-  @override
-  Future<void> startScan({
-    required List<String> targetTokens,
-    ScanConfig config = const ScanConfig(),
-  }) {
-    return methodChannel.invokeMethod<void>(
-      'startScan',
-      <String, Object?>{
-        'targetTokens': targetTokens,
-        ...config.toMap(),
-      },
-    );
-  }
-
-  @override
-  Future<void> stopBroadcast() {
-    return methodChannel.invokeMethod<void>('stopBroadcast');
-  }
-
-  @override
-  Future<void> stopScan() {
-    return methodChannel.invokeMethod<void>('stopScan');
-  }
-
-  @override
-  Future<String> debugDiscoverServices({
-    required String deviceId,
-    int timeoutMs = 8000,
-  }) async {
-    final result = await methodChannel.invokeMethod<String>(
-      'debugDiscoverServices',
-      <String, Object?>{
-        'deviceId': deviceId,
-        'timeoutMs': timeoutMs,
-      },
-    );
-    return result ?? '';
-  }
-}
-
-Map<Object?, Object?> _castEvent(Object? event) {
-  if (event is Map<Object?, Object?>) {
-    return event;
-  }
-  throw ArgumentError.value(event, 'event', 'Expected a map');
 }

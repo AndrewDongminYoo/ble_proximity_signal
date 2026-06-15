@@ -2,6 +2,7 @@ package com.andrew.signal
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
@@ -20,7 +21,10 @@ import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
@@ -28,12 +32,16 @@ import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresPermission
+import androidx.core.app.ActivityCompat
 import androidx.core.util.isEmpty
 import androidx.core.util.size
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.PluginRegistry
 import java.util.Base64
 import java.util.Locale
 import java.util.UUID
@@ -41,22 +49,35 @@ import java.util.concurrent.ConcurrentHashMap
 
 class BleProximitySignalPlugin :
     FlutterPlugin,
+    ActivityAware,
     MethodChannel.MethodCallHandler,
-    EventChannel.StreamHandler {
+    EventChannel.StreamHandler,
+    PluginRegistry.RequestPermissionsResultListener {
     companion object {
         private const val TAG = "BleProximitySignal"
         private const val DEFAULT_DISCOVERY_TIMEOUT_MS = 8000
         private const val MAX_TARGET_TOKENS = 5
         private const val DEFAULT_TX_POWER = AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM
+        private const val PERMISSION_REQUEST_CODE = 0xB1E
     }
 
     private lateinit var applicationContext: Context
     private lateinit var methodChannel: MethodChannel
     private lateinit var eventChannel: EventChannel
+    private lateinit var availabilityChannel: EventChannel
 
     // Thread-safety: lock for synchronized access to mutable state
     private val lock = Any()
     private var eventSink: EventChannel.EventSink? = null
+    private var availabilitySink: EventChannel.EventSink? = null
+
+    // Activity binding for runtime permission requests (ActivityAware)
+    private var activity: Activity? = null
+    private var activityBinding: ActivityPluginBinding? = null
+    private var pendingPermissionResult: MethodChannel.Result? = null
+
+    // Receiver for Bluetooth adapter on/off state changes
+    private var bluetoothStateReceiver: BroadcastReceiver? = null
 
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var scanner: BluetoothLeScanner? = null
@@ -93,6 +114,9 @@ class BleProximitySignalPlugin :
         eventChannel = EventChannel(binding.binaryMessenger, "ble_proximity_signal/events")
         eventChannel.setStreamHandler(this)
 
+        availabilityChannel = EventChannel(binding.binaryMessenger, "ble_proximity_signal/availability")
+        availabilityChannel.setStreamHandler(availabilityStreamHandler)
+
         val bm = applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothAdapter = bm.adapter
     }
@@ -116,10 +140,14 @@ class BleProximitySignalPlugin :
         pendingDiscovery = null
         discoveredDevices.clear()
 
+        unregisterBluetoothStateReceiver()
+
         methodChannel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)
+        availabilityChannel.setStreamHandler(null)
         synchronized(lock) {
             eventSink = null
+            availabilitySink = null
         }
     }
 
@@ -136,6 +164,41 @@ class BleProximitySignalPlugin :
         synchronized(lock) {
             eventSink = null
         }
+    }
+
+    // ----------------------------
+    // ActivityAware (runtime permission requests)
+    // ----------------------------
+
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        activityBinding = binding
+        activity = binding.activity
+        binding.addRequestPermissionsResultListener(this)
+    }
+
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        onAttachedToActivity(binding)
+    }
+
+    override fun onDetachedFromActivityForConfigChanges() {
+        detachActivity()
+    }
+
+    override fun onDetachedFromActivity() {
+        detachActivity()
+    }
+
+    private fun detachActivity() {
+        activityBinding?.removeRequestPermissionsResultListener(this)
+        activityBinding = null
+        activity = null
+        // Fail any in-flight request so the Dart future never hangs.
+        pendingPermissionResult?.error(
+            "activity_detached",
+            "Activity detached before the permission request completed",
+            null,
+        )
+        pendingPermissionResult = null
     }
 
     @RequiresPermission(
@@ -190,6 +253,19 @@ class BleProximitySignalPlugin :
                             ?: return result.error("invalid_args", "Missing 'deviceId'", null)
                     val timeoutMs = call.argument<Int>("timeoutMs") ?: DEFAULT_DISCOVERY_TIMEOUT_MS
                     debugDiscoverServicesInternal(deviceId, timeoutMs, result)
+                }
+
+                "checkPermissions" -> {
+                    result.success(currentPermissionStatus())
+                }
+
+                "requestPermissions" -> {
+                    // Resolves the result asynchronously via onRequestPermissionsResult.
+                    requestPermissionsInternal(result)
+                }
+
+                "checkAvailability" -> {
+                    result.success(computeAvailability())
                 }
 
                 else -> {
@@ -650,10 +726,10 @@ class BleProximitySignalPlugin :
 
     /**
      * Checks if all required Bluetooth permissions are granted.
-     * On Android 12+ (API 31+), runtime permissions are required:
-     * - BLUETOOTH_SCAN
-     * - BLUETOOTH_CONNECT
-     * - BLUETOOTH_ADVERTISE
+     *
+     * - Android 12+ (API 31+): BLUETOOTH_SCAN, BLUETOOTH_CONNECT, BLUETOOTH_ADVERTISE.
+     * - Android 6-11 (API 23-30): BLE scanning requires ACCESS_FINE_LOCATION at
+     *   runtime. minSdk for this plugin is 26, so API 26-30 all share this path.
      *
      * @return true if all required permissions are granted, false otherwise
      */
@@ -676,8 +752,154 @@ class BleProximitySignalPlugin :
 
             return hasConnect && hasScan && hasAdvertise
         }
-        // No runtime permissions needed on Android < 12
+        // API 23-30: ACCESS_FINE_LOCATION is required at runtime for BLE scanning.
+        return applicationContext.checkSelfPermission(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    // ----------------------------
+    // Permissions + availability
+    // ----------------------------
+
+    /** Maps the current grant state to the Dart [BlePermissionStatus] wire name. */
+    private fun currentPermissionStatus(): String = if (checkBluetoothPermissions()) "granted" else "denied"
+
+    /**
+     * Requests the Bluetooth runtime permissions and resolves [result] once the
+     * user has responded (via [onRequestPermissionsResult]).
+     *
+     * The permission set depends on the platform:
+     * - API 31+: BLUETOOTH_SCAN, BLUETOOTH_CONNECT, BLUETOOTH_ADVERTISE.
+     * - API 26-30: ACCESS_FINE_LOCATION (required at runtime for BLE scanning).
+     */
+    private fun requestPermissionsInternal(result: MethodChannel.Result) {
+        if (checkBluetoothPermissions()) {
+            result.success("granted")
+            return
+        }
+        val act = activity
+        if (act == null) {
+            result.error(
+                "no_activity",
+                "requestPermissions requires a foreground Activity",
+                null,
+            )
+            return
+        }
+        if (pendingPermissionResult != null) {
+            result.error("busy", "A permission request is already in progress", null)
+            return
+        }
+        pendingPermissionResult = result
+        val permissions =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                arrayOf(
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                )
+            } else {
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        ActivityCompat.requestPermissions(act, permissions, PERMISSION_REQUEST_CODE)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ): Boolean {
+        if (requestCode != PERMISSION_REQUEST_CODE) return false
+        val result = pendingPermissionResult ?: return false
+        pendingPermissionResult = null
+
+        val allGranted =
+            grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+        val status =
+            when {
+                allGranted -> {
+                    "granted"
+                }
+
+                else -> {
+                    val act = activity
+                    val permanentlyDenied =
+                        act != null &&
+                            permissions.indices.any { i ->
+                                grantResults.getOrNull(i) != PackageManager.PERMISSION_GRANTED &&
+                                    !ActivityCompat.shouldShowRequestPermissionRationale(act, permissions[i])
+                            }
+                    if (permanentlyDenied) "permanentlyDenied" else "denied"
+                }
+            }
+        result.success(status)
+        // Authorization just changed; push the new availability so subscribers to
+        // availabilityChanges see ready/unauthorized without waiting for an adapter
+        // ACTION_STATE_CHANGED broadcast or a resubscribe.
+        sendAvailability(computeAvailability())
         return true
+    }
+
+    /** Computes the current [BleAvailability] wire name. */
+    private fun computeAvailability(): String {
+        val adapter = bluetoothAdapter ?: return "unsupported"
+        if (!checkBluetoothPermissions()) return "unauthorized"
+        return if (adapter.isEnabled) "ready" else "poweredOff"
+    }
+
+    private val availabilityStreamHandler =
+        object : EventChannel.StreamHandler {
+            override fun onListen(
+                arguments: Any?,
+                events: EventChannel.EventSink?,
+            ) {
+                synchronized(lock) { availabilitySink = events }
+                registerBluetoothStateReceiver()
+                // Emit the current state immediately so listeners get an initial value.
+                sendAvailability(computeAvailability())
+            }
+
+            override fun onCancel(arguments: Any?) {
+                synchronized(lock) { availabilitySink = null }
+                unregisterBluetoothStateReceiver()
+            }
+        }
+
+    private fun registerBluetoothStateReceiver() {
+        if (bluetoothStateReceiver != null) return
+        val receiver =
+            object : BroadcastReceiver() {
+                override fun onReceive(
+                    context: Context?,
+                    intent: Intent?,
+                ) {
+                    if (intent?.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
+                        sendAvailability(computeAvailability())
+                    }
+                }
+            }
+        bluetoothStateReceiver = receiver
+        applicationContext.registerReceiver(
+            receiver,
+            IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
+        )
+    }
+
+    private fun unregisterBluetoothStateReceiver() {
+        bluetoothStateReceiver?.let { receiver ->
+            try {
+                applicationContext.unregisterReceiver(receiver)
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Receiver was not registered", e)
+            }
+        }
+        bluetoothStateReceiver = null
+    }
+
+    private fun sendAvailability(status: String) {
+        val sink = synchronized(lock) { availabilitySink } ?: return
+        mainHandler.post { sink.success(status) }
     }
 
     /**

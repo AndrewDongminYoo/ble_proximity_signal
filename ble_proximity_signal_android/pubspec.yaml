@@ -1,6 +1,6 @@
 name: ble_proximity_signal_android
 description: Android implementation of the ble_proximity_signal plugin
-version: 0.1.0+1
+version: 0.2.0
 homepage: https://github.com/AndrewDongminYoo/ble_proximity_signal
 repository: https://github.com/AndrewDongminYoo/ble_proximity_signal
 issue_tracker: https://github.com/AndrewDongminYoo/ble_proximity_signal/issues
@@ -27,7 +27,7 @@ flutter:
         dartPluginClass: BleProximitySignalAndroid
 
 dependencies:
-  ble_proximity_signal_platform_interface: ^0.1.0+1
+  ble_proximity_signal_platform_interface: ^0.2.0
   flutter:
     sdk: flutter
 

@@ -9,6 +9,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 class FakeBleProximitySignalPlatform extends BleProximitySignalPlatform {
   final StreamController<RawScanResult> _controller = StreamController<RawScanResult>.broadcast(sync: true);
+  final StreamController<BleAvailability> _availabilityController = StreamController<BleAvailability>.broadcast(
+    sync: true,
+  );
   String? lastBroadcastToken;
   BroadcastConfig? lastBroadcastConfig;
   List<String>? lastScanTokens;
@@ -18,9 +21,19 @@ class FakeBleProximitySignalPlatform extends BleProximitySignalPlatform {
   int stopBroadcastCalls = 0;
   int stopScanCalls = 0;
   bool throwOnStartScan = false;
+  int checkPermissionsCalls = 0;
+  int requestPermissionsCalls = 0;
+  int checkAvailabilityCalls = 0;
+  BlePermissionStatus permissionStatus = BlePermissionStatus.granted;
+  BleAvailability availability = BleAvailability.ready;
 
   @override
   Stream<RawScanResult> get scanResults => _controller.stream;
+
+  @override
+  Stream<BleAvailability> get availabilityChanges => _availabilityController.stream;
+
+  void emitAvailability(BleAvailability value) => _availabilityController.add(value);
 
   void emit({
     required String token,
@@ -36,7 +49,28 @@ class FakeBleProximitySignalPlatform extends BleProximitySignalPlatform {
     );
   }
 
-  Future<void> dispose() => _controller.close();
+  Future<void> dispose() async {
+    await _controller.close();
+    await _availabilityController.close();
+  }
+
+  @override
+  Future<BlePermissionStatus> checkPermissions() async {
+    checkPermissionsCalls += 1;
+    return permissionStatus;
+  }
+
+  @override
+  Future<BlePermissionStatus> requestPermissions() async {
+    requestPermissionsCalls += 1;
+    return permissionStatus;
+  }
+
+  @override
+  Future<BleAvailability> checkAvailability() async {
+    checkAvailabilityCalls += 1;
+    return availability;
+  }
 
   @override
   Future<void> startBroadcast({
@@ -311,6 +345,48 @@ void main() {
       expect(result, 'ok');
       expect(platform.lastDiscoverDeviceId, 'device-1');
       expect(platform.lastDiscoverTimeoutMs, 1234);
+    });
+
+    test('checkPermissions forwards to the platform', () async {
+      platform.permissionStatus = BlePermissionStatus.denied;
+
+      final status = await ble.checkPermissions();
+
+      expect(status, BlePermissionStatus.denied);
+      expect(platform.checkPermissionsCalls, 1);
+    });
+
+    test('requestPermissions forwards to the platform', () async {
+      platform.permissionStatus = BlePermissionStatus.permanentlyDenied;
+
+      final status = await ble.requestPermissions();
+
+      expect(status, BlePermissionStatus.permanentlyDenied);
+      expect(platform.requestPermissionsCalls, 1);
+    });
+
+    test('checkAvailability forwards to the platform', () async {
+      platform.availability = BleAvailability.poweredOff;
+
+      final availability = await ble.checkAvailability();
+
+      expect(availability, BleAvailability.poweredOff);
+      expect(platform.checkAvailabilityCalls, 1);
+    });
+
+    test('availabilityChanges forwards platform stream events', () async {
+      final events = <BleAvailability>[];
+      final sub = ble.availabilityChanges.listen(events.add);
+
+      platform
+        ..emitAvailability(BleAvailability.poweredOff)
+        ..emitAvailability(BleAvailability.ready);
+
+      await pumpEventQueue();
+
+      expect(events, <BleAvailability>[BleAvailability.poweredOff, BleAvailability.ready]);
+
+      await sub.cancel();
     });
 
     test('dispose stops scanning, broadcasting, and closes stream', () async {
