@@ -1,0 +1,60 @@
+name: publish
+
+# Automated publishing to pub.dev via GitHub Actions OIDC (no secrets).
+#
+# One-time setup, per package, on pub.dev › Admin › Automated publishing:
+#   - Repository:  AndrewDongminYoo/ble_proximity_signal
+#   - Tag pattern: <package_name>-v{{version}}
+# The first version of each package must be published manually with
+# `dart pub publish` before automated publishing can be enabled. See RELEASING.md.
+#
+# Trigger: push a per-package annotated tag, e.g. ble_proximity_signal_ios-v0.1.1.
+# Each tag runs only its matching job (guarded by `if`); the tag's version must
+# equal the package's pubspec version or pub.dev rejects the publish.
+
+permissions: read-all
+
+on:
+  push:
+    tags:
+      - ble_proximity_signal-v[0-9]+.[0-9]+.[0-9]+
+      - ble_proximity_signal_platform_interface-v[0-9]+.[0-9]+.[0-9]+
+      - ble_proximity_signal_ios-v[0-9]+.[0-9]+.[0-9]+
+      - ble_proximity_signal_android-v[0-9]+.[0-9]+.[0-9]+
+
+jobs:
+  platform_interface:
+    if: startsWith(github.ref, 'refs/tags/ble_proximity_signal_platform_interface-v')
+    permissions:
+      id-token: write # Required for OIDC authentication with pub.dev.
+      contents: read # Required for the reusable workflow to check out the repo.
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+    with:
+      working-directory: ble_proximity_signal_platform_interface
+
+  ios:
+    if: startsWith(github.ref, 'refs/tags/ble_proximity_signal_ios-v')
+    permissions:
+      id-token: write
+      contents: read
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+    with:
+      working-directory: ble_proximity_signal_ios
+
+  android:
+    if: startsWith(github.ref, 'refs/tags/ble_proximity_signal_android-v')
+    permissions:
+      id-token: write
+      contents: read
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+    with:
+      working-directory: ble_proximity_signal_android
+
+  app:
+    if: startsWith(github.ref, 'refs/tags/ble_proximity_signal-v')
+    permissions:
+      id-token: write
+      contents: read
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+    with:
+      working-directory: ble_proximity_signal
