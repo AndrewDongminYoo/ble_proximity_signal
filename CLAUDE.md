@@ -79,7 +79,7 @@ Token normalization happens in the Dart wrapper (`_normalizeToken` in `ble_proxi
 - **Dart is deliberately disabled in trunk** (`.trunk/trunk.yaml`); run Dart formatting/analysis via melos/`flutter`. trunk owns Kotlin (ktlint), Swift (swiftformat), YAML, Markdown, SVG, and secret scanning. Both gates should pass before a PR.
 - **Public members need doc comments** (very_good enforces this) — even trivial constructors carry `///` lines here.
 - **Commits:** Conventional Commits with gitmoji, e.g. `feat: ✨ ...`, `chore: 🔨 ...`. No Co-Author lines.
-- Each package is independently versioned (currently `0.1.0+1`).
+- Each package is independently versioned (currently `0.2.0`).
 
 ## Testing notes
 

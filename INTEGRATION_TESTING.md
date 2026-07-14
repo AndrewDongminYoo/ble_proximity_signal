@@ -103,7 +103,7 @@ dart pub global activate patrol_cli
 ```yaml
 # pubspec.yaml
 dev_dependencies:
-  patrol: ^4.1.1
+  patrol: ^4.5.0
 
 patrol:
   app_name: Ble Proximity Signal Example
