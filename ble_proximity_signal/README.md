@@ -60,6 +60,35 @@ await ble.stopBroadcast();
 await ble.dispose();
 ```
 
+### Permissions and availability
+
+Request permissions and confirm the adapter is usable before you scan or broadcast:
+
+```dart
+final ble = BleProximitySignal();
+
+// Ask for the Bluetooth permissions the plugin needs.
+final status = await ble.requestPermissions();
+if (status != BlePermissionStatus.granted) {
+  // denied / permanentlyDenied / restricted / notDetermined
+  return;
+}
+
+// Confirm the adapter is powered on and authorized.
+final availability = await ble.checkAvailability();
+if (availability != BleAvailability.ready) {
+  // poweredOff / unauthorized / unsupported / unknown
+  return;
+}
+
+// React to the adapter being toggled off/on while running.
+final availSub = ble.availabilityChanges.listen((a) => print('BLE: $a'));
+```
+
+Use `checkPermissions()` for a non-prompting status read. On Android it reports
+`denied` instead of `permanentlyDenied` (the rationale state is only known after
+`requestPermissions()`).
+
 ---
 
 ## Token format
@@ -84,6 +113,10 @@ If the token cannot be parsed, the Dart wrapper throws `FormatException`.
 
 - `startBroadcast(token:, config:)` / `stopBroadcast()`
 - `startScan(targetTokens:, config:, signalConfig:)` / `stopScan()`
+- `requestPermissions()` / `checkPermissions()` → `BlePermissionStatus`
+  Request or read the BLE runtime permissions the plugin needs.
+- `checkAvailability()` → `BleAvailability`; `Stream<BleAvailability> get availabilityChanges`
+  Whether the adapter is powered on/authorized, plus live changes.
 - `Stream<ProximityEvent> get events`
   Smoothed/hysteresis-applied stream intended for UX.
 - `Stream<RawScanResult> get rawScanResults`
@@ -115,11 +148,11 @@ Controls EMA smoothing + thresholds/hysteresis (see source).
 
 ---
 
-## Limitations / Non-goals (v0.1.0)
+## Limitations / Non-goals
 
 - Foreground-only (no background guarantees)
 - No distance-in-meters
-- No rolling IDs (v0.2+)
+- No rolling IDs
 - No built-in sound/vibration/notifications (left to the app layer)
 
 ---

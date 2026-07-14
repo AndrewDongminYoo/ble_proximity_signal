@@ -30,7 +30,7 @@ It emits raw scan events to Dart via the event channel (`RawScanResult` maps).
 This plugin targets a “metal detector” UX. It is built for **foreground usage**:
 
 - scanning/advertising should be considered best-effort
-- background behavior is not a goal for v0.1.0
+- background behavior is not a goal
 
 ---
 
