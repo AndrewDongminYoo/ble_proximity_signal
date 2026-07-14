@@ -1,6 +1,6 @@
 name: ble_proximity_signal
 description: Foreground BLE scanner that maps RSSI to intensity (0..1) for up to 5 target identifiers.
-version: 0.2.0
+version: 0.2.1
 homepage: https://github.com/AndrewDongminYoo/ble_proximity_signal
 repository: https://github.com/AndrewDongminYoo/ble_proximity_signal
 issue_tracker: https://github.com/AndrewDongminYoo/ble_proximity_signal/issues

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- Document the permission/availability API (`requestPermissions`,
+  `checkPermissions`, `checkAvailability`, `availabilityChanges`) in the README
+  and drop stale version labels. Docs only; no API changes.
+
 ## 0.2.0
 
 - Add `checkPermissions`, `requestPermissions`, and `checkAvailability` plus an
