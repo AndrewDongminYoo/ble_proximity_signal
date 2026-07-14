@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `ble_proximity_signal` is a **federated Flutter plugin** for foreground-only BLE proximity detection ("metal detector" UX): advertise a short token, scan for up to 5 target tokens, and emit a smoothed `Stream<ProximityEvent>` with an intensity (0..1) and proximity level (far / near / veryNear).
 
-Explicit non-goals (v0.1.0): background reliability, distance-in-meters, rolling IDs, and built-in sound/vibration/notifications (left to the app layer).
+Explicit non-goals: background reliability, distance-in-meters, rolling IDs, and built-in sound/vibration/notifications (left to the app layer).
 
 ## Monorepo layout
 
@@ -62,6 +62,8 @@ The plugin's value lives almost entirely **Dart-side**. Native layers only adver
    - **Intensity** linear-mapped from smoothed RSSI between `minDbm`..`maxDbm`, clamped 0..1
    - a **stale timer** (`staleMs`, default 1500ms) that forces the target back to `far` / intensity 0 if no signal arrives
 4. `BleProximitySignal` (the public API) owns the `SignalProcessor`, exposes `events`, and emits `ProximityEvent`s carrying transition flags (`enteredNear`, `exitedVeryNear`, etc.).
+
+Beyond the proximity stream, `BleProximitySignal` exposes a **permission/availability surface** that delegates straight to the platform (no Dart-side processing): `checkPermissions()` and `requestPermissions()` return a `BlePermissionStatus`, `checkAvailability()` returns a `BleAvailability`, and `availabilityChanges` is a `Stream<BleAvailability>`. Both enums live in the platform interface and are re-exported from the app-facing package. On Android, `checkPermissions()` reports `denied` rather than `permanentlyDenied` (the rationale state is only known after a request).
 
 Method/event channel names are the constants `'ble_proximity_signal'` (MethodChannel) and `'ble_proximity_signal/events'` (EventChannel) — **identical across the platform interface, android, and ios Dart classes**. Keep them in sync if you change one.
 

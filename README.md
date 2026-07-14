@@ -79,30 +79,30 @@ Normalization behavior:
 
 If the token cannot be parsed, the Dart wrapper throws `FormatException`.
 
-## Implementation Goals (v0.1.0)
+## Implementation Goals
 
 - Foreground **advertising + scanning** on iOS/Android (latest devices).
 - Filter up to **5 target tokens** and emit a continuous `Stream<ProximityEvent>`.
 - RSSI smoothing (EMA), hysteresis for near/veryNear, and intensity mapping.
 - Example app supports broadcast start/stop, scan start/stop, and debug tools.
 
-**Non-goals (v0.1.0):**
+**Non-goals:**
 
 - background guarantees
 - distance-in-meters
-- rolling IDs (v0.2+)
+- rolling IDs
 - built-in sound/vibration/notifications (left to the app layer)
 
 ## Platform notes
 
 ### iOS
 
-- Foreground-only scanning/advertising (expected behavior for v0.1.0).
+- Foreground-only scanning/advertising (by design).
 - The example app includes a **debug device list** (scan all peripherals) and can probe discovered peripherals via GATT service discovery.
 
 ### Android
 
-- Foreground-only by design (v0.1.0).
+- Foreground-only by design.
 - Device identifiers in scan results can be **randomized/unstable** on some Android versions/devices.
 - Integration tests require a physical device or emulator with BLE support.
 
