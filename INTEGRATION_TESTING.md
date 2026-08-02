@@ -289,7 +289,7 @@ Since this project **requires testing Bluetooth permissions**, Patrol is essenti
 2. BLE functionality needs real device testing
 3. We need to verify permission grant/deny scenarios
 
-**Secondary Tool: Fluttium**
+#### Secondary Tool: Fluttium
 
 Keep Fluttium for:
 
