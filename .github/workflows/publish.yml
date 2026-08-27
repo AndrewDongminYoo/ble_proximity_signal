@@ -28,7 +28,7 @@ jobs:
     permissions:
       id-token: write # Required for OIDC authentication with pub.dev.
       contents: read # Required for the reusable workflow to check out the repo.
-    uses: dart-lang/setup-dart/.github/workflows/publish.yml@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
     with:
       working-directory: ble_proximity_signal_platform_interface
 
@@ -37,7 +37,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    uses: dart-lang/setup-dart/.github/workflows/publish.yml@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
     with:
       working-directory: ble_proximity_signal_ios
 
@@ -46,7 +46,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    uses: dart-lang/setup-dart/.github/workflows/publish.yml@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
     with:
       working-directory: ble_proximity_signal_android
 
@@ -55,6 +55,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    uses: dart-lang/setup-dart/.github/workflows/publish.yml@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
     with:
       working-directory: ble_proximity_signal

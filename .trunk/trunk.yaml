@@ -19,8 +19,8 @@ runtimes:
 lint:
   disabled:
     - dart
+    - pinact
   enabled:
-    - pinact@4.1.0
     - swiftformat@0.61.1
     - actionlint@1.7.12
     - checkov@3.3.8
