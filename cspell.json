@@ -20,6 +20,6 @@
     }
   ],
   "useGitignore": true,
-  "ignoreWords": ["meta-data"],
+  "ignoreWords": ["meta-data", "timezone"],
   "words": ["fluttium"]
 }
