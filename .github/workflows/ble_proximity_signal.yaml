@@ -20,7 +20,6 @@ on:
 
 jobs:
   spell-check:
-    if: ${{ !contains(fromJSON('["dependabot[bot]", "renovate[bot]", "snyk-bot", "allcontributors[bot]"]'), github.actor) }}
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
     with:
       config: cspell.json
@@ -31,15 +30,13 @@ jobs:
       modified_files_only: false
 
   build:
-    if: ${{ !contains(fromJSON('["dependabot[bot]", "renovate[bot]", "snyk-bot", "allcontributors[bot]"]'), github.actor) }}
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@v1
     with:
-      flutter_version: 3.44.1
+      flutter_version: 3.47.8
       format_line_length: 120
       working_directory: ble_proximity_signal
 
   android:
-    if: ${{ !contains(fromJSON('["dependabot[bot]", "renovate[bot]", "snyk-bot", "allcontributors[bot]"]'), github.actor) }}
     # Linux + KVM is the runner the android-emulator-runner README recommends for
     # hardware-accelerated emulators. The previous macos-latest runners are now
     # Apple Silicon, where the emulator fails before boot (sdkmanager step), so
@@ -101,7 +98,6 @@ jobs:
           working-directory: ble_proximity_signal/example
 
   ios:
-    if: ${{ !contains(fromJSON('["dependabot[bot]", "renovate[bot]", "snyk-bot", "allcontributors[bot]"]'), github.actor) }}
     runs-on: macos-latest
 
     defaults:
