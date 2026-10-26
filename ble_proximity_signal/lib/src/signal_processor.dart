@@ -73,11 +73,7 @@ class SignalProcessor {
 
     final prevLevel = state.level;
 
-    final smooth = _applyEma(
-      previous: state.smoothRssi,
-      current: raw.rssi,
-      alpha: _config.emaAlpha,
-    );
+    final smooth = _applyEma(previous: state.smoothRssi, current: raw.rssi, alpha: _config.emaAlpha);
 
     state
       ..smoothRssi = smooth
@@ -171,11 +167,7 @@ class SignalProcessor {
     });
   }
 
-  double _applyEma({
-    required double? previous,
-    required int current,
-    required double alpha,
-  }) {
+  double _applyEma({required double? previous, required int current, required double alpha}) {
     final bounded = alpha.clamp(0, 1).toDouble();
     if (previous == null || !previous.isFinite || !bounded.isFinite) {
       return current.toDouble();
@@ -189,11 +181,7 @@ class SignalProcessor {
     return (bounded * current) + ((1 - bounded) * previous);
   }
 
-  ProximityLevel _applyHysteresis(
-    ProximityLevel currentLevel,
-    double smoothRssi,
-    Thresholds thresholds,
-  ) {
+  ProximityLevel _applyHysteresis(ProximityLevel currentLevel, double smoothRssi, Thresholds thresholds) {
     final enterNear = thresholds.enterNearDbm.toDouble();
     final exitNear = thresholds.exitNearDbm.toDouble();
     final enterVeryNear = thresholds.enterVeryNearDbm.toDouble();

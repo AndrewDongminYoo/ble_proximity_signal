@@ -33,63 +33,35 @@ void main() {
     });
 
     test('startBroadcast invokes method channel', () async {
-      const config = BroadcastConfig(
-        serviceUuid: '00000000-0000-0000-0000-000000000000',
-        txPower: 1,
-      );
-      await methodChannelBleProximitySignal.startBroadcast(
-        token: 'a1b2',
-        config: config,
-      );
-      expect(
-        log,
-        <Matcher>[
-          isMethodCall(
-            'startBroadcast',
-            arguments: <String, Object?>{
-              'token': 'a1b2',
-              'serviceUuid': config.serviceUuid,
-              'txPower': config.txPower,
-            },
-          ),
-        ],
-      );
+      const config = BroadcastConfig(serviceUuid: '00000000-0000-0000-0000-000000000000', txPower: 1);
+      await methodChannelBleProximitySignal.startBroadcast(token: 'a1b2', config: config);
+      expect(log, <Matcher>[
+        isMethodCall(
+          'startBroadcast',
+          arguments: <String, Object?>{'token': 'a1b2', 'serviceUuid': config.serviceUuid, 'txPower': config.txPower},
+        ),
+      ]);
     });
 
     test('startScan invokes method channel', () async {
-      const config = ScanConfig(
-        serviceUuid: '11111111-1111-1111-1111-111111111111',
-        debugAllowAll: true,
-      );
-      await methodChannelBleProximitySignal.startScan(
-        targetTokens: <String>['aa', 'bb'],
-        config: config,
-      );
-      expect(
-        log,
-        <Matcher>[
-          isMethodCall(
-            'startScan',
-            arguments: <String, Object?>{
-              'targetTokens': <String>['aa', 'bb'],
-              'serviceUuid': config.serviceUuid,
-              'debugAllowAll': config.debugAllowAll,
-            },
-          ),
-        ],
-      );
+      const config = ScanConfig(serviceUuid: '11111111-1111-1111-1111-111111111111', debugAllowAll: true);
+      await methodChannelBleProximitySignal.startScan(targetTokens: <String>['aa', 'bb'], config: config);
+      expect(log, <Matcher>[
+        isMethodCall(
+          'startScan',
+          arguments: <String, Object?>{
+            'targetTokens': <String>['aa', 'bb'],
+            'serviceUuid': config.serviceUuid,
+            'debugAllowAll': config.debugAllowAll,
+          },
+        ),
+      ]);
     });
 
     test('stopBroadcast and stopScan invoke method channel', () async {
       await methodChannelBleProximitySignal.stopBroadcast();
       await methodChannelBleProximitySignal.stopScan();
-      expect(
-        log,
-        <Matcher>[
-          isMethodCall('stopBroadcast', arguments: null),
-          isMethodCall('stopScan', arguments: null),
-        ],
-      );
+      expect(log, <Matcher>[isMethodCall('stopBroadcast', arguments: null), isMethodCall('stopScan', arguments: null)]);
     });
 
     test('scanResults maps event channel data to RawScanResult', () async {
@@ -97,11 +69,7 @@ void main() {
         const EventChannel('ble_proximity_signal/events'),
         MockStreamHandler.inline(
           onListen: (arguments, events) {
-            events.success(<Object?, Object?>{
-              'targetToken': 'a1b2',
-              'rssi': -44,
-              'timestampMs': 1234,
-            });
+            events.success(<Object?, Object?>{'targetToken': 'a1b2', 'rssi': -44, 'timestampMs': 1234});
             events.endOfStream();
           },
         ),
@@ -130,30 +98,16 @@ void main() {
         ),
       );
 
-      await expectLater(
-        methodChannelBleProximitySignal.scanResults.first,
-        throwsArgumentError,
-      );
+      await expectLater(methodChannelBleProximitySignal.scanResults.first, throwsArgumentError);
     });
 
     test('debugDiscoverServices returns empty string when platform returns null', () async {
-      final result = await methodChannelBleProximitySignal.debugDiscoverServices(
-        deviceId: 'device-1',
-      );
+      final result = await methodChannelBleProximitySignal.debugDiscoverServices(deviceId: 'device-1');
 
       expect(result, isEmpty);
-      expect(
-        log,
-        <Matcher>[
-          isMethodCall(
-            'debugDiscoverServices',
-            arguments: <String, Object?>{
-              'deviceId': 'device-1',
-              'timeoutMs': 8000,
-            },
-          ),
-        ],
-      );
+      expect(log, <Matcher>[
+        isMethodCall('debugDiscoverServices', arguments: <String, Object?>{'deviceId': 'device-1', 'timeoutMs': 8000}),
+      ]);
     });
 
     test('checkPermissions maps the platform string and invokes the channel', () async {
@@ -229,11 +183,7 @@ void main() {
 
       await expectLater(
         methodChannelBleProximitySignal.availabilityChanges,
-        emitsInOrder(<Matcher>[
-          equals(BleAvailability.poweredOff),
-          equals(BleAvailability.ready),
-          emitsDone,
-        ]),
+        emitsInOrder(<Matcher>[equals(BleAvailability.poweredOff), equals(BleAvailability.ready), emitsDone]),
       );
     });
 
@@ -249,24 +199,12 @@ void main() {
         },
       );
 
-      final result = await methodChannelBleProximitySignal.debugDiscoverServices(
-        deviceId: 'device-2',
-        timeoutMs: 2500,
-      );
+      final result = await methodChannelBleProximitySignal.debugDiscoverServices(deviceId: 'device-2', timeoutMs: 2500);
 
       expect(result, 'ok');
-      expect(
-        log,
-        <Matcher>[
-          isMethodCall(
-            'debugDiscoverServices',
-            arguments: <String, Object?>{
-              'deviceId': 'device-2',
-              'timeoutMs': 2500,
-            },
-          ),
-        ],
-      );
+      expect(log, <Matcher>[
+        isMethodCall('debugDiscoverServices', arguments: <String, Object?>{'deviceId': 'device-2', 'timeoutMs': 2500}),
+      ]);
     });
   });
 }

@@ -47,11 +47,7 @@ class BleProximitySignal {
   /// Each listener gets its own buffer. Defaults to 20 entries.
   Stream<List<RawScanResult>> rawScanLog({int maxEntries = 20}) {
     if (maxEntries <= 0) {
-      throw ArgumentError.value(
-        maxEntries,
-        'maxEntries',
-        'must be > 0',
-      );
+      throw ArgumentError.value(maxEntries, 'maxEntries', 'must be > 0');
     }
 
     final buffer = <RawScanResult>[];
@@ -65,10 +61,7 @@ class BleProximitySignal {
   }
 
   /// Starts BLE advertising with the given token.
-  Future<void> startBroadcast({
-    required String token,
-    BroadcastConfig config = const BroadcastConfig(),
-  }) async {
+  Future<void> startBroadcast({required String token, BroadcastConfig config = const BroadcastConfig()}) async {
     final normalized = _normalizeToken(token);
     await _platform.startBroadcast(token: normalized, config: config);
   }
@@ -86,11 +79,7 @@ class BleProximitySignal {
     SignalConfig signalConfig = const SignalConfig(),
   }) async {
     if (!config.debugAllowAll && targetTokens.length > 5) {
-      throw ArgumentError.value(
-        targetTokens.length,
-        'targetTokens',
-        'must be <= 5',
-      );
+      throw ArgumentError.value(targetTokens.length, 'targetTokens', 'must be <= 5');
     }
 
     final normalizedTokens = config.debugAllowAll ? <String>{} : targetTokens.map(_normalizeToken).toSet();
@@ -132,14 +121,8 @@ class BleProximitySignal {
   }
 
   /// Debug: connect to a device and dump discovered services/characteristics.
-  Future<String> debugDiscoverServices({
-    required String deviceId,
-    int timeoutMs = 8000,
-  }) {
-    return _platform.debugDiscoverServices(
-      deviceId: deviceId,
-      timeoutMs: timeoutMs,
-    );
+  Future<String> debugDiscoverServices({required String deviceId, int timeoutMs = 8000}) {
+    return _platform.debugDiscoverServices(deviceId: deviceId, timeoutMs: timeoutMs);
   }
 
   /// Clean Up Internal Resources
@@ -172,9 +155,7 @@ String _normalizeToken(String token) {
     final bytes = base64.decode(padded);
     return _bytesToHexLower(bytes);
   } on FormatException {
-    throw const FormatException(
-      'Invalid token format (expected hex or base64url/base64).',
-    );
+    throw const FormatException('Invalid token format (expected hex or base64url/base64).');
   }
 }
 

@@ -35,18 +35,8 @@ class FakeBleProximitySignalPlatform extends BleProximitySignalPlatform {
 
   void emitAvailability(BleAvailability value) => _availabilityController.add(value);
 
-  void emit({
-    required String token,
-    required int rssi,
-    int? timestampMs,
-  }) {
-    _controller.add(
-      RawScanResult(
-        targetToken: token,
-        rssi: rssi,
-        timestampMs: timestampMs ?? 0,
-      ),
-    );
+  void emit({required String token, required int rssi, int? timestampMs}) {
+    _controller.add(RawScanResult(targetToken: token, rssi: rssi, timestampMs: timestampMs ?? 0));
   }
 
   Future<void> dispose() async {
@@ -73,19 +63,13 @@ class FakeBleProximitySignalPlatform extends BleProximitySignalPlatform {
   }
 
   @override
-  Future<void> startBroadcast({
-    required String token,
-    BroadcastConfig config = const BroadcastConfig(),
-  }) async {
+  Future<void> startBroadcast({required String token, BroadcastConfig config = const BroadcastConfig()}) async {
     lastBroadcastToken = token;
     lastBroadcastConfig = config;
   }
 
   @override
-  Future<void> startScan({
-    required List<String> targetTokens,
-    ScanConfig config = const ScanConfig(),
-  }) async {
+  Future<void> startScan({required List<String> targetTokens, ScanConfig config = const ScanConfig()}) async {
     lastScanTokens = targetTokens;
     lastScanConfig = config;
     if (throwOnStartScan) {
@@ -104,10 +88,7 @@ class FakeBleProximitySignalPlatform extends BleProximitySignalPlatform {
   }
 
   @override
-  Future<String> debugDiscoverServices({
-    required String deviceId,
-    int timeoutMs = 8000,
-  }) async {
+  Future<String> debugDiscoverServices({required String deviceId, int timeoutMs = 8000}) async {
     lastDiscoverDeviceId = deviceId;
     lastDiscoverTimeoutMs = timeoutMs;
     return 'ok';
@@ -178,10 +159,7 @@ void main() {
     });
 
     test('raw scan log rejects non-positive maxEntries', () {
-      expect(
-        () => ble.rawScanLog(maxEntries: 0),
-        throwsArgumentError,
-      );
+      expect(() => ble.rawScanLog(maxEntries: 0), throwsArgumentError);
     });
 
     test('startBroadcast normalizes base64 tokens with padding', () async {
@@ -193,10 +171,7 @@ void main() {
     });
 
     test('startBroadcast rejects invalid tokens', () async {
-      await expectLater(
-        ble.startBroadcast(token: '%%%'),
-        throwsA(isA<FormatException>()),
-      );
+      await expectLater(ble.startBroadcast(token: '%%%'), throwsA(isA<FormatException>()));
     });
 
     test('EMA smoothing dampens intensity spikes', () async {
@@ -226,11 +201,7 @@ void main() {
         minDbm: -60,
         maxDbm: -60,
       );
-      const signalConfig = SignalConfig(
-        emaAlpha: 1,
-        thresholds: thresholds,
-        staleMs: 100000,
-      );
+      const signalConfig = SignalConfig(emaAlpha: 1, thresholds: thresholds, staleMs: 100000);
 
       await ble.startScan(targetTokens: ['aa'], signalConfig: signalConfig);
 
@@ -257,11 +228,7 @@ void main() {
         minDbm: -80,
         maxDbm: -45,
       );
-      const signalConfig = SignalConfig(
-        emaAlpha: 1,
-        thresholds: thresholds,
-        staleMs: 100000,
-      );
+      const signalConfig = SignalConfig(emaAlpha: 1, thresholds: thresholds, staleMs: 100000);
 
       await ble.startScan(targetTokens: ['aa'], signalConfig: signalConfig);
 
@@ -294,10 +261,7 @@ void main() {
     test('startScan rejects more than five target tokens', () async {
       final tokens = List<String>.generate(6, (index) => 'aa$index');
 
-      await expectLater(
-        ble.startScan(targetTokens: tokens),
-        throwsArgumentError,
-      );
+      await expectLater(ble.startScan(targetTokens: tokens), throwsArgumentError);
     });
 
     test('startScan tears down processor when native start fails', () async {
@@ -305,10 +269,7 @@ void main() {
       final events = <ProximityEvent>[];
       final sub = ble.events.listen(events.add);
 
-      await expectLater(
-        ble.startScan(targetTokens: ['aa']),
-        throwsA(isA<StateError>()),
-      );
+      await expectLater(ble.startScan(targetTokens: ['aa']), throwsA(isA<StateError>()));
 
       platform.emit(token: 'aa', rssi: -40);
       await pumpEventQueue();

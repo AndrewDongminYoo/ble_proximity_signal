@@ -14,16 +14,11 @@ class MyApp extends StatelessWidget {
     final theme = ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3C5E57)),
-      textTheme: Theme.of(context).textTheme.apply(
-        bodyColor: const Color(0xFFE8F3EF),
-        displayColor: const Color(0xFFE8F3EF),
-      ),
+      textTheme: Theme.of(
+        context,
+      ).textTheme.apply(bodyColor: const Color(0xFFE8F3EF), displayColor: const Color(0xFFE8F3EF)),
     );
-    return MaterialApp(
-      theme: theme,
-      home: const HomePage(),
-      debugShowCheckedModeBanner: false,
-    );
+    return MaterialApp(theme: theme, home: const HomePage(), debugShowCheckedModeBanner: false);
   }
 }
 
@@ -240,16 +235,9 @@ class _HomePageState extends State<HomePage> {
         builder: (context) {
           return AlertDialog(
             title: const Text('Discover Services'),
-            content: SingleChildScrollView(
-              child: SelectableText(dump),
-            ),
+            content: SingleChildScrollView(child: SelectableText(dump)),
             backgroundColor: const Color(0xFF3C5E57),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
-              ),
-            ],
+            actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
           );
         },
       );
@@ -314,18 +302,12 @@ class _HomePageState extends State<HomePage> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final intensityColor = Color.lerp(
-      const Color(0xFF28423B),
-      const Color(0xFFFFC857),
-      _intensity,
-    );
+    final intensityColor = Color.lerp(const Color(0xFF28423B), const Color(0xFFFFC857), _intensity);
     final signalLabel = _level.name.toUpperCase();
 
     return Scaffold(
@@ -343,19 +325,12 @@ class _HomePageState extends State<HomePage> {
             children: [
               const Text(
                 'Metal Detector',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: 1.2),
               ),
               const SizedBox(height: 6),
               Text(
                 _scanning ? 'Scanning…' : 'Idle',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
               ),
               const SizedBox(height: 24),
               _SignalCard(
@@ -445,13 +420,7 @@ class _SignalCard extends StatelessWidget {
         color: const Color(0xFF142320),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 18, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,24 +430,14 @@ class _SignalCard extends StatelessWidget {
             children: [
               Text(
                 'Signal',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
                 child: Text(
                   levelLabel,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                  ),
+                  style: TextStyle(color: color, fontWeight: FontWeight.w700, letterSpacing: 1.1),
                 ),
               ),
             ],
@@ -498,11 +457,7 @@ class _SignalCard extends StatelessWidget {
               ),
               Text(
                 '${(intensity * 100).round()}%',
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 16),
               ),
             ],
           ),
@@ -551,19 +506,8 @@ class _IntensityBar extends StatelessWidget {
                 width: fillWidth,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    colors: [
-                      color.withValues(alpha: 0.4),
-                      color,
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.5),
-                      blurRadius: 12,
-                      spreadRadius: -2,
-                    ),
-                  ],
+                  gradient: LinearGradient(colors: [color.withValues(alpha: 0.4), color]),
+                  boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 12, spreadRadius: -2)],
                 ),
               ),
               Center(
@@ -609,11 +553,7 @@ class _BeepIndicator extends StatelessWidget {
         ],
       ),
       child: Center(
-        child: Icon(
-          Icons.sensors,
-          size: 18,
-          color: beepOn ? Colors.black : Colors.white.withValues(alpha: 0.7),
-        ),
+        child: Icon(Icons.sensors, size: 18, color: beepOn ? Colors.black : Colors.white.withValues(alpha: 0.7)),
       ),
     );
   }
@@ -629,23 +569,14 @@ class _MetricChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(color: Colors.white.withValues(alpha: 0.85)),
-      ),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12)),
+      child: Text('$label: $value', style: TextStyle(color: Colors.white.withValues(alpha: 0.85))),
     );
   }
 }
 
 class _DebugCard extends StatelessWidget {
-  const _DebugCard({
-    required this.enabled,
-    required this.onChanged,
-  });
+  const _DebugCard({required this.enabled, required this.onChanged});
 
   final bool enabled;
   final ValueChanged<bool>? onChanged;
@@ -664,10 +595,7 @@ class _DebugCard extends StatelessWidget {
           Expanded(
             child: Text(
               'Debug: scan all peripherals',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w600),
             ),
           ),
           Switch.adaptive(value: enabled, onChanged: onChanged),
@@ -678,11 +606,7 @@ class _DebugCard extends StatelessWidget {
 }
 
 class _DeviceListCard extends StatelessWidget {
-  const _DeviceListCard({
-    required this.entries,
-    required this.connectingDeviceIds,
-    required this.onTap,
-  });
+  const _DeviceListCard({required this.entries, required this.connectingDeviceIds, required this.onTap});
 
   final List<RawScanResult> entries;
   final Set<String> connectingDeviceIds;
@@ -702,25 +626,14 @@ class _DeviceListCard extends StatelessWidget {
         children: [
           Text(
             'Visible Devices (refresh 1s)',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
           if (entries.isEmpty)
-            Text(
-              'No devices yet.',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-            )
+            Text('No devices yet.', style: TextStyle(color: Colors.white.withValues(alpha: 0.6)))
           else
             for (var i = 0; i < entries.length; i++)
-              _DeviceRow(
-                index: i,
-                data: entries[i],
-                connectingDeviceIds: connectingDeviceIds,
-                onTap: onTap,
-              ),
+              _DeviceRow(index: i, data: entries[i], connectingDeviceIds: connectingDeviceIds, onTap: onTap),
         ],
       ),
     );
@@ -728,12 +641,7 @@ class _DeviceListCard extends StatelessWidget {
 }
 
 class _DeviceRow extends StatelessWidget {
-  const _DeviceRow({
-    required this.index,
-    required this.data,
-    required this.connectingDeviceIds,
-    required this.onTap,
-  });
+  const _DeviceRow({required this.index, required this.data, required this.connectingDeviceIds, required this.onTap});
 
   final int index;
   final RawScanResult data;
@@ -779,9 +687,7 @@ class _DeviceRow extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: canTap ? 0.2 : 0.08),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: canTap ? 0.2 : 0.08)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -791,26 +697,13 @@ class _DeviceRow extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '$label • ${data.rssi}dBm • $ageLabel',
-                      style: TextStyle(
-                        color: headerColor.withValues(alpha: 0.9),
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: TextStyle(color: headerColor.withValues(alpha: 0.9), fontWeight: FontWeight.w600),
                     ),
                   ),
                   if (canTap && !isConnecting && !othersConnecting)
-                    Text(
-                      'Tap to probe',
-                      style: TextStyle(
-                        color: headerColor.withValues(alpha: 0.8),
-                        fontSize: 12,
-                      ),
-                    )
+                    Text('Tap to probe', style: TextStyle(color: headerColor.withValues(alpha: 0.8), fontSize: 12))
                   else if (isConnecting)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                    const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   else
                     const SizedBox.shrink(),
                 ],
@@ -819,13 +712,7 @@ class _DeviceRow extends StatelessWidget {
               for (final line in lines)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 2),
-                  child: Text(
-                    line,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      fontSize: 11,
-                    ),
-                  ),
+                  child: Text(line, style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 11)),
                 ),
             ],
           ),
@@ -872,10 +759,7 @@ class _TokenCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -888,10 +772,7 @@ class _TokenCard extends StatelessWidget {
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.05),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 12),

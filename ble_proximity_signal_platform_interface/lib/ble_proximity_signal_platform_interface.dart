@@ -9,10 +9,7 @@ export 'package:ble_proximity_signal_platform_interface/src/method_channel_ble_p
 /// Configuration for broadcasting messages or events.
 class BroadcastConfig {
   /// Configuration for broadcasting messages or events.
-  const BroadcastConfig({
-    this.serviceUuid = defaultServiceUuid,
-    this.txPower,
-  });
+  const BroadcastConfig({this.serviceUuid = defaultServiceUuid, this.txPower});
 
   /// Default 128-bit UUID (v0.1.0). Change if you want a custom UUID.
   static const String defaultServiceUuid = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E';
@@ -24,19 +21,13 @@ class BroadcastConfig {
   final int? txPower;
 
   /// Creates a map with keys 'serviceUuid' and 'txPower' mapped to their respective values.
-  Map<String, Object?> toMap() => <String, Object?>{
-    'serviceUuid': serviceUuid,
-    'txPower': txPower,
-  };
+  Map<String, Object?> toMap() => <String, Object?>{'serviceUuid': serviceUuid, 'txPower': txPower};
 }
 
 /// Scan configuration for native filtering.
 class ScanConfig {
   /// Scan configuration for native filtering.
-  const ScanConfig({
-    this.serviceUuid = BroadcastConfig.defaultServiceUuid,
-    this.debugAllowAll = false,
-  });
+  const ScanConfig({this.serviceUuid = BroadcastConfig.defaultServiceUuid, this.debugAllowAll = false});
 
   /// BLE service UUID used to filter scan results.
   final String serviceUuid;
@@ -45,10 +36,7 @@ class ScanConfig {
   final bool debugAllowAll;
 
   /// Converts this config to a platform channel map.
-  Map<String, Object?> toMap() => <String, Object?>{
-    'serviceUuid': serviceUuid,
-    'debugAllowAll': debugAllowAll,
-  };
+  Map<String, Object?> toMap() => <String, Object?>{'serviceUuid': serviceUuid, 'debugAllowAll': debugAllowAll};
 }
 
 /// Raw scan result from native layer.
@@ -109,77 +97,41 @@ class RawScanResult {
       throw ArgumentError.value(localNameHex, 'localNameHex', 'must be a String');
     }
     if (manufacturerDataLen != null && manufacturerDataLen is! int) {
-      throw ArgumentError.value(
-        manufacturerDataLen,
-        'manufacturerDataLen',
-        'must be an int',
-      );
+      throw ArgumentError.value(manufacturerDataLen, 'manufacturerDataLen', 'must be an int');
     }
     if (manufacturerDataHex != null && manufacturerDataHex is! String) {
-      throw ArgumentError.value(
-        manufacturerDataHex,
-        'manufacturerDataHex',
-        'must be a String',
-      );
+      throw ArgumentError.value(manufacturerDataHex, 'manufacturerDataHex', 'must be a String');
     }
     if (serviceDataLen != null && serviceDataLen is! int) {
-      throw ArgumentError.value(
-        serviceDataLen,
-        'serviceDataLen',
-        'must be an int',
-      );
+      throw ArgumentError.value(serviceDataLen, 'serviceDataLen', 'must be an int');
     }
     if (serviceDataUuids != null) {
       if (serviceDataUuids is! List) {
-        throw ArgumentError.value(
-          serviceDataUuids,
-          'serviceDataUuids',
-          'must be a List<String>',
-        );
+        throw ArgumentError.value(serviceDataUuids, 'serviceDataUuids', 'must be a List<String>');
       }
       for (final entry in serviceDataUuids) {
         if (entry is! String) {
-          throw ArgumentError.value(
-            serviceDataUuids,
-            'serviceDataUuids',
-            'must contain only String values',
-          );
+          throw ArgumentError.value(serviceDataUuids, 'serviceDataUuids', 'must contain only String values');
         }
       }
     }
     if (serviceDataHex != null) {
       if (serviceDataHex is! Map) {
-        throw ArgumentError.value(
-          serviceDataHex,
-          'serviceDataHex',
-          'must be a Map<String, String>',
-        );
+        throw ArgumentError.value(serviceDataHex, 'serviceDataHex', 'must be a Map<String, String>');
       }
       for (final entry in serviceDataHex.entries) {
         if (entry.key is! String || entry.value is! String) {
-          throw ArgumentError.value(
-            serviceDataHex,
-            'serviceDataHex',
-            'must contain only String keys and values',
-          );
+          throw ArgumentError.value(serviceDataHex, 'serviceDataHex', 'must contain only String keys and values');
         }
       }
     }
     if (serviceUuids != null) {
       if (serviceUuids is! List) {
-        throw ArgumentError.value(
-          serviceUuids,
-          'serviceUuids',
-          'must be a List<String>',
-        );
+        throw ArgumentError.value(serviceUuids, 'serviceUuids', 'must be a List<String>');
       }
       for (final entry in serviceUuids) {
         if (entry is! String) {
-          throw ArgumentError.value(
-            serviceUuids,
-            'serviceUuids',
-            'must contain only String values',
-          );
+          throw ArgumentError.value(serviceUuids, 'serviceUuids', 'must contain only String values');
         }
       }
     }
@@ -345,10 +297,7 @@ abstract class BleProximitySignalPlatform extends PlatformInterface {
   /// Starts BLE advertising with the given token.
   ///
   /// Foreground-only (v0.1.0). Platform may reject if BLE is unavailable/off.
-  Future<void> startBroadcast({
-    required String token,
-    BroadcastConfig config = const BroadcastConfig(),
-  });
+  Future<void> startBroadcast({required String token, BroadcastConfig config = const BroadcastConfig()});
 
   /// Stops BLE advertising.
   Future<void> stopBroadcast();
@@ -359,19 +308,13 @@ abstract class BleProximitySignalPlatform extends PlatformInterface {
   /// but platforms may also validate).
   /// If [ScanConfig.debugAllowAll] is true, platforms may scan all peripherals
   /// and ignore UUID/token filtering for debugging.
-  Future<void> startScan({
-    required List<String> targetTokens,
-    ScanConfig config = const ScanConfig(),
-  });
+  Future<void> startScan({required List<String> targetTokens, ScanConfig config = const ScanConfig()});
 
   /// Stops scanning.
   Future<void> stopScan();
 
   /// Debug: connect to a device and dump discovered services/characteristics.
-  Future<String> debugDiscoverServices({
-    required String deviceId,
-    int timeoutMs = 8000,
-  });
+  Future<String> debugDiscoverServices({required String deviceId, int timeoutMs = 8000});
 
   /// Raw scan result stream from native.
   ///

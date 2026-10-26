@@ -32,11 +32,7 @@ class Thresholds {
 /// Dart-side signal processing configuration.
 class SignalConfig {
   /// Dart-side signal processing configuration.
-  const SignalConfig({
-    this.emaAlpha = 0.2,
-    this.thresholds = const Thresholds(),
-    this.staleMs = 1500,
-  });
+  const SignalConfig({this.emaAlpha = 0.2, this.thresholds = const Thresholds(), this.staleMs = 1500});
 
   /// Exponential moving average alpha (0..1).
   final double emaAlpha;

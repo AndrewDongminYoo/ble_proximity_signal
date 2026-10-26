@@ -11,16 +11,10 @@ class BleProximitySignalMock extends BleProximitySignalPlatform {
   Stream<RawScanResult> get scanResults => _controller.stream;
 
   @override
-  Future<void> startBroadcast({
-    required String token,
-    BroadcastConfig config = const BroadcastConfig(),
-  }) async {}
+  Future<void> startBroadcast({required String token, BroadcastConfig config = const BroadcastConfig()}) async {}
 
   @override
-  Future<void> startScan({
-    required List<String> targetTokens,
-    ScanConfig config = const ScanConfig(),
-  }) async {}
+  Future<void> startScan({required List<String> targetTokens, ScanConfig config = const ScanConfig()}) async {}
 
   @override
   Future<void> stopBroadcast() async {}
@@ -29,10 +23,7 @@ class BleProximitySignalMock extends BleProximitySignalPlatform {
   Future<void> stopScan() async {}
 
   @override
-  Future<String> debugDiscoverServices({
-    required String deviceId,
-    int timeoutMs = 8000,
-  }) async {
+  Future<String> debugDiscoverServices({required String deviceId, int timeoutMs = 8000}) async {
     return 'ok';
   }
 
@@ -67,48 +58,29 @@ void main() {
     });
 
     test('scanResults is a RawScanResult stream', () {
-      expect(
-        BleProximitySignalPlatform.instance.scanResults,
-        isA<Stream<RawScanResult>>(),
-      );
+      expect(BleProximitySignalPlatform.instance.scanResults, isA<Stream<RawScanResult>>());
     });
 
     test('start/stop methods complete', () async {
-      await BleProximitySignalPlatform.instance.startBroadcast(
-        token: 'a1b2',
-      );
+      await BleProximitySignalPlatform.instance.startBroadcast(token: 'a1b2');
       await BleProximitySignalPlatform.instance.stopBroadcast();
-      await BleProximitySignalPlatform.instance.startScan(
-        targetTokens: <String>['aa'],
-      );
+      await BleProximitySignalPlatform.instance.startScan(targetTokens: <String>['aa']);
       await BleProximitySignalPlatform.instance.stopScan();
     });
 
     test('BroadcastConfig.toMap includes defaults', () {
       const config = BroadcastConfig();
 
-      expect(
-        config.toMap(),
-        <String, Object?>{
-          'serviceUuid': BroadcastConfig.defaultServiceUuid,
-          'txPower': null,
-        },
-      );
+      expect(config.toMap(), <String, Object?>{'serviceUuid': BroadcastConfig.defaultServiceUuid, 'txPower': null});
     });
 
     test('ScanConfig.toMap includes debug flags', () {
-      const config = ScanConfig(
-        serviceUuid: '00000000-0000-0000-0000-000000000000',
-        debugAllowAll: true,
-      );
+      const config = ScanConfig(serviceUuid: '00000000-0000-0000-0000-000000000000', debugAllowAll: true);
 
-      expect(
-        config.toMap(),
-        <String, Object?>{
-          'serviceUuid': '00000000-0000-0000-0000-000000000000',
-          'debugAllowAll': true,
-        },
-      );
+      expect(config.toMap(), <String, Object?>{
+        'serviceUuid': '00000000-0000-0000-0000-000000000000',
+        'debugAllowAll': true,
+      });
     });
 
     test('RawScanResult.fromMap parses optional fields', () {
@@ -146,11 +118,7 @@ void main() {
     });
 
     test('RawScanResult.fromMap validates field types', () {
-      final base = <Object?, Object?>{
-        'targetToken': 'aa',
-        'rssi': -44,
-        'timestampMs': 1234,
-      };
+      final base = <Object?, Object?>{'targetToken': 'aa', 'rssi': -44, 'timestampMs': 1234};
       final cases = <Map<Object?, Object?>>[
         <Object?, Object?>{...base, 'targetToken': 7},
         <Object?, Object?>{...base, 'rssi': 'bad'},
@@ -184,10 +152,7 @@ void main() {
       ];
 
       for (final map in cases) {
-        expect(
-          () => RawScanResult.fromMap(map),
-          throwsArgumentError,
-        );
+        expect(() => RawScanResult.fromMap(map), throwsArgumentError);
       }
     });
 

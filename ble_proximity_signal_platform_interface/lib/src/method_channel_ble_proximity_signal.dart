@@ -17,31 +17,16 @@ class MethodChannelBleProximitySignal extends BleProximitySignalPlatform {
       _eventChannel.receiveBroadcastStream().map((event) => RawScanResult.fromMap(_castEvent(event)));
 
   @override
-  Future<void> startBroadcast({
-    required String token,
-    BroadcastConfig config = const BroadcastConfig(),
-  }) {
-    return methodChannel.invokeMethod<void>(
-      'startBroadcast',
-      <String, Object?>{
-        'token': token,
-        ...config.toMap(),
-      },
-    );
+  Future<void> startBroadcast({required String token, BroadcastConfig config = const BroadcastConfig()}) {
+    return methodChannel.invokeMethod<void>('startBroadcast', <String, Object?>{'token': token, ...config.toMap()});
   }
 
   @override
-  Future<void> startScan({
-    required List<String> targetTokens,
-    ScanConfig config = const ScanConfig(),
-  }) {
-    return methodChannel.invokeMethod<void>(
-      'startScan',
-      <String, Object?>{
-        'targetTokens': targetTokens,
-        ...config.toMap(),
-      },
-    );
+  Future<void> startScan({required List<String> targetTokens, ScanConfig config = const ScanConfig()}) {
+    return methodChannel.invokeMethod<void>('startScan', <String, Object?>{
+      'targetTokens': targetTokens,
+      ...config.toMap(),
+    });
   }
 
   @override
@@ -55,17 +40,11 @@ class MethodChannelBleProximitySignal extends BleProximitySignalPlatform {
   }
 
   @override
-  Future<String> debugDiscoverServices({
-    required String deviceId,
-    int timeoutMs = 8000,
-  }) async {
-    final result = await methodChannel.invokeMethod<String>(
-      'debugDiscoverServices',
-      <String, Object?>{
-        'deviceId': deviceId,
-        'timeoutMs': timeoutMs,
-      },
-    );
+  Future<String> debugDiscoverServices({required String deviceId, int timeoutMs = 8000}) async {
+    final result = await methodChannel.invokeMethod<String>('debugDiscoverServices', <String, Object?>{
+      'deviceId': deviceId,
+      'timeoutMs': timeoutMs,
+    });
     return result ?? '';
   }
 
