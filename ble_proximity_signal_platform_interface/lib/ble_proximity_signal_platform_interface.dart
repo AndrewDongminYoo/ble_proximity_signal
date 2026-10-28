@@ -9,7 +9,7 @@ export 'package:ble_proximity_signal_platform_interface/src/method_channel_ble_p
 /// Configuration for broadcasting messages or events.
 class BroadcastConfig {
   /// Configuration for broadcasting messages or events.
-  const BroadcastConfig({this.serviceUuid = defaultServiceUuid, this.txPower});
+  const new({this.serviceUuid = defaultServiceUuid, this.txPower});
 
   /// Default 128-bit UUID (v0.1.0). Change if you want a custom UUID.
   static const String defaultServiceUuid = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E';
@@ -27,7 +27,7 @@ class BroadcastConfig {
 /// Scan configuration for native filtering.
 class ScanConfig {
   /// Scan configuration for native filtering.
-  const ScanConfig({this.serviceUuid = BroadcastConfig.defaultServiceUuid, this.debugAllowAll = false});
+  const new({this.serviceUuid = BroadcastConfig.defaultServiceUuid, this.debugAllowAll = false});
 
   /// BLE service UUID used to filter scan results.
   final String serviceUuid;
@@ -43,7 +43,7 @@ class ScanConfig {
 /// Dart-side will smooth RSSI and compute intensity / hysteresis.
 class RawScanResult {
   /// Raw scan result from native layer.
-  const RawScanResult({
+  const new({
     required this.targetToken,
     required this.rssi,
     required this.timestampMs,
@@ -60,7 +60,7 @@ class RawScanResult {
   });
 
   /// Converts a map to a `RawScanResult` object by validating and extracting specific fields.
-  factory RawScanResult.fromMap(Map<Object?, Object?> map) {
+  factory fromMap(Map<Object?, Object?> map) {
     final token = map['targetToken'];
     final rssi = map['rssi'];
     final ts = map['timestampMs'];
@@ -278,7 +278,7 @@ enum BlePermissionStatus {
 /// {@endtemplate}
 abstract class BleProximitySignalPlatform extends PlatformInterface {
   /// {@macro ble_proximity_signal_platform}
-  BleProximitySignalPlatform() : super(token: _token);
+  new() : super(token: _token);
 
   static final Object _token = Object();
 

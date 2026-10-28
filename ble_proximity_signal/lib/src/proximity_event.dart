@@ -13,7 +13,7 @@ enum ProximityLevel {
 /// Smoothed proximity signal for a single target token.
 class ProximityEvent {
   /// Smoothed proximity signal for a single target token.
-  const ProximityEvent({
+  const new({
     required this.targetToken,
     required this.rssi,
     required this.smoothRssi,

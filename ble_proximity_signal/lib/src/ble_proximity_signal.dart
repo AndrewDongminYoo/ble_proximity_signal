@@ -9,8 +9,7 @@ import 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_pla
 /// BLE proximity signal API (foreground-only).
 class BleProximitySignal {
   /// BLE proximity signal API (foreground-only).
-  BleProximitySignal({BleProximitySignalPlatform? platform})
-    : _platform = platform ?? BleProximitySignalPlatform.instance;
+  new({BleProximitySignalPlatform? platform}) : _platform = platform ?? BleProximitySignalPlatform.instance;
 
   final BleProximitySignalPlatform _platform;
   late final Stream<RawScanResult> _rawStream = _platform.scanResults.asBroadcastStream();

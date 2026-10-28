@@ -1,7 +1,7 @@
 /// Thresholds for proximity hysteresis and intensity mapping.
 class Thresholds {
   /// Thresholds for proximity hysteresis and intensity mapping.
-  const Thresholds({
+  const new({
     this.enterNearDbm = -60,
     this.exitNearDbm = -65,
     this.enterVeryNearDbm = -52,
@@ -32,7 +32,7 @@ class Thresholds {
 /// Dart-side signal processing configuration.
 class SignalConfig {
   /// Dart-side signal processing configuration.
-  const SignalConfig({this.emaAlpha = 0.2, this.thresholds = const Thresholds(), this.staleMs = 1500});
+  const new({this.emaAlpha = 0.2, this.thresholds = const Thresholds(), this.staleMs = 1500});
 
   /// Exponential moving average alpha (0..1).
   final double emaAlpha;

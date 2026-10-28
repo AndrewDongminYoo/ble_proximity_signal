@@ -8,19 +8,14 @@ import 'package:ble_proximity_signal_platform_interface/ble_proximity_signal_pla
 /// Processes raw scan results into smoothed [ProximityEvent]s.
 class SignalProcessor {
   /// Processes raw scan results into smoothed [ProximityEvent]s.
-  SignalProcessor({
-    required Stream<RawScanResult> rawStream,
-    required Set<String> targetTokens,
-    required SignalConfig config,
-    required void Function(ProximityEvent) onEvent,
-    required void Function(Object, StackTrace) onError,
+  new({
+    required this._rawStream,
+    required this._targetTokens,
+    required this._config,
+    required this._onEvent,
+    required this._onError,
     DateTime Function()? now,
-  }) : _rawStream = rawStream,
-       _targetTokens = targetTokens,
-       _config = config,
-       _onEvent = onEvent,
-       _onError = onError,
-       _now = now ?? DateTime.now;
+  }) : _now = now ?? DateTime.now;
 
   final Stream<RawScanResult> _rawStream;
   final Set<String> _targetTokens;
@@ -234,7 +229,7 @@ class SignalProcessor {
 }
 
 class _TargetState {
-  _TargetState({
+  new({
     required this.smoothRssi,
     required this.lastRssi,
     required this.level,

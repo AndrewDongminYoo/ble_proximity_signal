@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+
 import 'package:ble_proximity_signal/ble_proximity_signal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,23 +8,22 @@ import 'package:flutter/services.dart';
 void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const new({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3C5E57)),
-      textTheme: Theme.of(
-        context,
-      ).textTheme.apply(bodyColor: const Color(0xFFE8F3EF), displayColor: const Color(0xFFE8F3EF)),
+      textTheme: Theme.of(context).textTheme
+          .apply(bodyColor: const Color(0xFFE8F3EF), displayColor: const Color(0xFFE8F3EF)),
     );
     return MaterialApp(theme: theme, home: const HomePage(), debugShowCheckedModeBanner: false);
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const new({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -385,7 +385,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _SignalCard extends StatelessWidget {
-  const _SignalCard({
+  const new({
     required this.intensity,
     required this.levelLabel,
     required this.color,
@@ -481,7 +481,7 @@ class _SignalCard extends StatelessWidget {
 }
 
 class _IntensityBar extends StatelessWidget {
-  const _IntensityBar({required this.intensity, required this.color});
+  const new({required this.intensity, required this.color});
 
   final double intensity;
   final Color color;
@@ -530,7 +530,7 @@ class _IntensityBar extends StatelessWidget {
 }
 
 class _BeepIndicator extends StatelessWidget {
-  const _BeepIndicator({required this.beepOn, required this.color});
+  const new({required this.beepOn, required this.color});
 
   final bool beepOn;
   final Color color;
@@ -560,7 +560,7 @@ class _BeepIndicator extends StatelessWidget {
 }
 
 class _MetricChip extends StatelessWidget {
-  const _MetricChip({required this.label, required this.value});
+  const new({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -576,7 +576,7 @@ class _MetricChip extends StatelessWidget {
 }
 
 class _DebugCard extends StatelessWidget {
-  const _DebugCard({required this.enabled, required this.onChanged});
+  const new({required this.enabled, required this.onChanged});
 
   final bool enabled;
   final ValueChanged<bool>? onChanged;
@@ -606,7 +606,7 @@ class _DebugCard extends StatelessWidget {
 }
 
 class _DeviceListCard extends StatelessWidget {
-  const _DeviceListCard({required this.entries, required this.connectingDeviceIds, required this.onTap});
+  const new({required this.entries, required this.connectingDeviceIds, required this.onTap});
 
   final List<RawScanResult> entries;
   final Set<String> connectingDeviceIds;
@@ -641,7 +641,7 @@ class _DeviceListCard extends StatelessWidget {
 }
 
 class _DeviceRow extends StatelessWidget {
-  const _DeviceRow({required this.index, required this.data, required this.connectingDeviceIds, required this.onTap});
+  const new({required this.index, required this.data, required this.connectingDeviceIds, required this.onTap});
 
   final int index;
   final RawScanResult data;
@@ -729,7 +729,7 @@ class _DeviceRow extends StatelessWidget {
 }
 
 class _TokenCard extends StatelessWidget {
-  const _TokenCard({
+  const new({
     required this.title,
     required this.controller,
     required this.actionLabel,
