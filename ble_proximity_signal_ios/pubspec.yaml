@@ -12,8 +12,8 @@ topics:
   - beacon
 
 environment:
-  sdk: ^3.11.0
-  flutter: ">=3.18.0"
+  sdk: ^3.13.7
+  flutter: ^3.47.8
 
 resolution: workspace
 
