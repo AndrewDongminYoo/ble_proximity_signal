@@ -486,13 +486,27 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
 
     private func describeProperties(_ properties: CBCharacteristicProperties) -> String {
         var parts: [String] = []
-        if properties.contains(.read) { parts.append("read") }
-        if properties.contains(.write) { parts.append("write") }
-        if properties.contains(.writeWithoutResponse) { parts.append("writeNoResponse") }
-        if properties.contains(.notify) { parts.append("notify") }
-        if properties.contains(.indicate) { parts.append("indicate") }
-        if properties.contains(.authenticatedSignedWrites) { parts.append("signedWrite") }
-        if properties.contains(.extendedProperties) { parts.append("extendedProps") }
+        if properties.contains(.read) {
+            parts.append("read")
+        }
+        if properties.contains(.write) {
+            parts.append("write")
+        }
+        if properties.contains(.writeWithoutResponse) {
+            parts.append("writeNoResponse")
+        }
+        if properties.contains(.notify) {
+            parts.append("notify")
+        }
+        if properties.contains(.indicate) {
+            parts.append("indicate")
+        }
+        if properties.contains(.authenticatedSignedWrites) {
+            parts.append("signedWrite")
+        }
+        if properties.contains(.extendedProperties) {
+            parts.append("extendedProps")
+        }
         return parts.isEmpty ? "none" : parts.joined(separator: "|")
     }
 
@@ -667,8 +681,11 @@ public class BleProximitySignalPlugin: NSObject, FlutterPlugin, FlutterStreamHan
         // base64url/base64
         var normalized = trimmed.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
         let mod = normalized.count % 4
-        if mod == 2 { normalized += "==" }
-        else if mod == 3 { normalized += "=" }
+        if mod == 2 {
+            normalized += "=="
+        } else if mod == 3 {
+            normalized += "="
+        }
 
         return Data(base64Encoded: normalized)
     }
