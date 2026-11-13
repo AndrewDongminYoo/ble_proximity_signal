@@ -26,16 +26,16 @@ lint:
     - dart
   enabled:
     - actionlint@1.7.12
-    - checkov@3.4.3
+    - checkov@3.4.5
     - git-diff-check
     - ktlint@1.8.0
     - markdownlint@0.50.0
     - oxipng@10.2.1
     - pinact@4.1.1!
-    - prettier@3.9.10
+    - prettier@3.10.1
     - svgo@4.1.0
     - swiftformat@0.64.6
-    - trufflehog@3.99.8
+    - trufflehog@3.99.9
     - yamllint@1.38.0
 actions:
   enabled:
