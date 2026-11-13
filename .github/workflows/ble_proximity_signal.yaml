@@ -32,7 +32,7 @@ jobs:
   build:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@33d441b1f92ff046f1945309a204d9ed039e6fc9 # v2.1.0
     with:
-      flutter_version: 3.47.8
+      flutter_version: 3.50.0
       format_line_length: 120
       working_directory: ble_proximity_signal
 
