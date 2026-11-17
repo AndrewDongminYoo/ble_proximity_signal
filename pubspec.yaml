@@ -19,7 +19,7 @@ topics:
   - beacon
 
 dev_dependencies:
-  melos: ^8.10.0
+  melos: ^8.10.1
 
 melos:
   name: ble_proximity_signal
