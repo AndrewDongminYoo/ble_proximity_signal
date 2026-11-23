@@ -5,7 +5,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
-      day: monday
+      day: thursday
       timezone: Asia/Seoul
     groups:
       github-actions-minor-patch:
@@ -22,7 +22,7 @@ updates:
     directory: /ble_proximity_signal
     schedule:
       interval: weekly
-      day: monday
+      day: tuesday
       timezone: Asia/Seoul
     open-pull-requests-limit: 3
     groups:
@@ -40,7 +40,7 @@ updates:
     directory: /ble_proximity_signal/example
     schedule:
       interval: weekly
-      day: monday
+      day: tuesday
       timezone: Asia/Seoul
     open-pull-requests-limit: 3
     groups:
@@ -58,7 +58,7 @@ updates:
     directory: /ble_proximity_signal_platform_interface
     schedule:
       interval: weekly
-      day: monday
+      day: tuesday
       timezone: Asia/Seoul
     open-pull-requests-limit: 3
     groups:
@@ -76,7 +76,7 @@ updates:
     directory: /ble_proximity_signal_android
     schedule:
       interval: weekly
-      day: monday
+      day: tuesday
       timezone: Asia/Seoul
     open-pull-requests-limit: 3
     groups:
@@ -94,7 +94,7 @@ updates:
     directory: /ble_proximity_signal_ios
     schedule:
       interval: weekly
-      day: monday
+      day: tuesday
       timezone: Asia/Seoul
     open-pull-requests-limit: 3
     groups:
